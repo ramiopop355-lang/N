@@ -1,0 +1,785 @@
+artifacts/sheikh-dhaki/src/index.css
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+ 
+@custom-variant dark (&:is(.dark *));
+ 
+@theme inline {
+  --font-sans: 'Cairo', sans-serif;
+  --font-display: 'Cairo', sans-serif;
+ 
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  
+  --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring));
+ 
+  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+}
+ 
+:root {
+  /* LIGHT MODE - Sky Blue */
+  --background: 204 100% 98%;
+  --foreground: 215 28% 17%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 204 94% 94%;
+  --secondary-foreground: 199 89% 48%;
+  --accent: 199 92% 40%;
+  --accent-foreground: 0 0% 100%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 32% 91%;
+  --ring: 199 89% 48%;
+}
+ 
+.dark {
+  /* DARK MODE - Night Blue */
+  --background: 216 68% 14%;   /* #0B1E3B */
+  --foreground: 0 0% 100%;
+  --primary: 195 100% 50%;     /* #00BFFF */
+  --primary-foreground: 216 68% 14%;
+  --secondary: 211 57% 24%;    /* #1A3A5F */
+  --secondary-foreground: 0 0% 100%;
+  --accent: 199 71% 73%;       /* #87CEEB */
+  --accent-foreground: 216 68% 14%;
+  --muted: 215 28% 17%;
+  --muted-foreground: 215 20% 65%;
+  --border: 195 100% 50% / 0.3;
+  --ring: 195 100% 50%;
+}
+ 
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    direction: rtl;
+    text-align: right;
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+}
+ 
+@layer utilities {
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-primary/20 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-primary/40; }
+}
+________________________________________
+artifacts/sheikh-dhaki/src/App.tsx
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
+import { motion } from "framer-motion";
+ 
+import NotFound from "@/pages/not-found";
+import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
+import Chat from "@/pages/Chat";
+ 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
+});
+ 
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(false);
+ 
+  useEffect(() => {
+    const isDarkStored = localStorage.getItem("darkMode") === "true";
+    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialDark = localStorage.getItem("darkMode") ? isDarkStored : systemPrefersDark;
+    setIsDark(initialDark);
+    document.documentElement.classList.toggle("dark", initialDark);
+  }, []);
+ 
+  const toggleDarkMode = () => {
+    setIsDark((prev) => {
+      const newDark = !prev;
+      localStorage.setItem("darkMode", String(newDark));
+      document.documentElement.classList.toggle("dark", newDark);
+      return newDark;
+    });
+  };
+ 
+  return { isDark, toggleDarkMode };
+}
+ 
+function DarkModeToggle() {
+  const { isDark, toggleDarkMode } = useDarkMode();
+  return (
+    <button
+      onClick={toggleDarkMode}
+      className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-primary/20 backdrop-blur-md border border-primary/30 text-primary shadow-lg hover:scale-110 hover:bg-primary/30 transition-all duration-300"
+      title={isDark ? "تفعيل الوضع النهاري" : "تفعيل الوضع الليلي"}
+    >
+      <motion.div initial={false} animate={{ rotate: isDark ? 180 : 0 }} transition={{ duration: 0.5 }}>
+        {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+      </motion.div>
+    </button>
+  );
+}
+ 
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoggedIn } = useAuth();
+  const [, setLocation] = useLocation();
+  useEffect(() => { if (!isLoggedIn) setLocation("/login"); }, [isLoggedIn, setLocation]);
+  if (!isLoggedIn) return null;
+  return <Component />;
+}
+ 
+function Router() {
+  return (
+    <Switch>
+      <Route path="/login" component={Login} />
+      <Route path="/">
+        <ProtectedRoute component={Dashboard} />
+      </Route>
+      <Route path="/chat">
+        <ProtectedRoute component={Chat} />
+      </Route>
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+ 
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+            <DarkModeToggle />
+          </WouterRouter>
+          <Toaster />
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+ 
+export default App;
+________________________________________
+artifacts/sheikh-dhaki/src/pages/Login.tsx
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { GraduationCap, Upload, ShieldCheck, UserCircle, Rocket, CreditCard } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+ 
+export default function Login() {
+  const [activeTab, setActiveTab] = useState<'login' | 'activate'>('login');
+  const [isUploading, setIsUploading] = useState(false);
+  const { login } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+ 
+  const handleLogin = () => {
+    login();
+    toast({ title: "مرحباً بك يا بطل! 🎓", description: "الباك راهو في الجيب، خلينا نبدأ." });
+    setLocation("/");
+  };
+ 
+  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setIsUploading(true);
+      setTimeout(() => {
+        setIsUploading(false);
+        toast({ title: "✅ تم استقبال الوصل!", description: "حسابك مفعل الآن بنجاح. يمكنك الدخول." });
+        setActiveTab('login');
+      }, 1500);
+    }
+  };
+ 
+  return (
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-background">
+      {/* Blur Orbs */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <img src={`${import.meta.env.BASE_URL}images/hero-bg.png`} alt="" className="w-full h-full object-cover opacity-20 dark:opacity-40 mix-blend-screen" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/60 to-background/95" />
+      </div>
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-[100px] pointer-events-none" />
+ 
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-2xl bg-white/70 dark:bg-secondary/40 backdrop-blur-2xl border-2 border-primary/20 dark:border-primary/40 rounded-[40px] p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_25px_50px_-12px_rgba(0,191,255,0.25)] text-center"
+      >
+        <motion.div
+          initial={{ scale: 0 }} animate={{ scale: 1 }}
+          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          className="w-24 h-24 mx-auto bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(0,191,255,0.3)] mb-6"
+        >
+          <GraduationCap className="w-12 h-12 text-white dark:text-background" />
+        </motion.div>
+ 
+        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-accent to-primary mb-4">
+          الأستاذ المصحح (الشيخ ذكي)
+        </h1>
+        <p className="text-xl text-foreground/80 font-medium mb-6">
+          مختبر تصحيح تمارين البكالوريا بالمنهجية الجزائرية
+        </p>
+ 
+        <div className="inline-block bg-gradient-to-r from-primary to-accent text-white dark:text-background px-8 py-3 rounded-full font-black text-2xl mb-8 shadow-[0_0_25px_rgba(0,191,255,0.4)]">
+          اشتراك التفعيل: 1000 دج
+        </div>
+ 
+        <p className="text-muted-foreground text-lg mb-10">
+          لا تضيع نقاطك بسبب المنهجية.. <span className="text-accent font-bold">الباك راهو في الجيب!</span>
+        </p>
+ 
+        <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent mb-10" />
+ 
+        {/* Tabs */}
+        <div className="flex bg-secondary/30 dark:bg-background/50 p-2 rounded-2xl mb-8 border border-primary/10">
+          <button
+            onClick={() => setActiveTab('login')}
+            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-lg transition-all duration-300 ${activeTab === 'login' ? 'bg-primary text-white dark:text-background shadow-lg' : 'text-foreground/60 hover:text-foreground'}`}
+          >
+            <UserCircle className="w-6 h-6" /> دخول الطالب
+          </button>
+          <button
+            onClick={() => setActiveTab('activate')}
+            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-lg transition-all duration-300 ${activeTab === 'activate' ? 'bg-primary text-white dark:text-background shadow-lg' : 'text-foreground/60 hover:text-foreground'}`}
+          >
+            <ShieldCheck className="w-6 h-6" /> تفعيل الحساب
+          </button>
+        </div>
+ 
+        <div className="min-h-[160px]">
+          <AnimatePresence mode="wait">
+            {activeTab === 'login' ? (
+              <motion.div key="login" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col items-center">
+                <button
+                  onClick={handleLogin}
+                  className="w-full sm:w-[80%] bg-gradient-to-r from-primary to-accent text-white dark:text-background font-black text-xl md:text-2xl rounded-2xl py-5 px-8 shadow-[0_10px_30px_rgba(0,191,255,0.2)] hover:shadow-[0_15px_40px_rgba(0,191,255,0.4)] hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3 group"
+                >
+                  الدخول إلى مختبر التصحيح
+                  <Rocket className="w-6 h-6 group-hover:-translate-y-1 transition-transform" />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div key="activate" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="bg-secondary/20 dark:bg-background/40 border border-primary/20 rounded-2xl p-6 text-right">
+                <div className="flex items-center gap-3 mb-4 text-accent">
+                  <CreditCard className="w-6 h-6" />
+                  <h3 className="text-xl font-bold">أرسل مبلغ 1000 دج عبر بريدي موب</h3>
+                </div>
+                <div className="bg-white/80 dark:bg-background/80 font-mono text-xl tracking-widest text-center py-4 rounded-xl border border-primary/10 mb-6 select-all">
+                  RIP: 00799999002789880450
+                </div>
+                <label className="block w-full border-2 border-dashed border-primary/40 hover:border-primary bg-primary/5 hover:bg-primary/10 transition-colors rounded-xl p-6 text-center cursor-pointer">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} disabled={isUploading} />
+                  {isUploading ? (
+                    <div className="flex flex-col items-center text-primary">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                      <span>جاري التحقق من الوصل...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-primary/70 mx-auto mb-2" />
+                      <span className="text-lg font-medium">ارفع صورة الوصل هنا</span>
+                      <span className="block text-sm text-foreground/40 mt-1">التفعيل فوري (JPG, PNG)</span>
+                    </>
+                  )}
+                </label>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+ 
+      <p className="absolute bottom-6 text-center text-sm text-foreground/40 font-medium">
+        حقوق الطبع والنشر محفوظة © منصة حل عقدة الباك 2026
+      </p>
+    </div>
+  );
+}
+________________________________________
+artifacts/sheikh-dhaki/src/pages/Dashboard.tsx
+import { useState, useRef, useEffect } from "react";
+import { useCorrectExercise } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
+import { fileToBase64 } from "@/lib/utils";
+import { differenceInDays } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Trash2, CalendarDays, Upload, ChevronDown, Image as ImageIcon, XCircle, LogOut, MessageSquare } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useLocation, Link } from "wouter";
+ 
+type HistoryItem = { id: string; correction: string; shoba: string; date: Date };
+ 
+const SHOBAS = ["علوم تجريبية","رياضيات","تقني رياضي","لغات","آداب","تسيير"];
+const BAC_DATE = new Date(2026, 5, 15);
+ 
+export default function Dashboard() {
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [selectedShoba, setSelectedShoba] = useState(SHOBAS[0]);
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const { logout } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { mutate: correctExercise, isPending } = useCorrectExercise();
+  const daysLeft = Math.max(0, differenceInDays(BAC_DATE, new Date()));
+ 
+  useEffect(() => {
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
+ 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const f = e.target.files[0];
+      setFile(f);
+      setPreviewUrl(URL.createObjectURL(f));
+    }
+  };
+ 
+  const clearFile = () => {
+    setFile(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+ 
+  const handleClearHistory = () => {
+    if (confirm("هل أنت متأكد من مسح جميع التصحيحات؟")) {
+      setHistory([]);
+      toast({ title: "تم مسح السبورة بنجاح 🧹" });
+    }
+  };
+ 
+  const handleLogout = () => { logout(); setLocation("/login"); };
+ 
+  const handleSubmit = async () => {
+    if (!file) { toast({ title: "يا بطل، صور التمرين أولاً! 📸", variant: "destructive" }); return; }
+    try {
+      const base64 = await fileToBase64(file);
+      correctExercise({ data: { imageBase64: base64, shoba: selectedShoba, notes } }, {
+        onSuccess: (res) => {
+          setHistory(prev => [{ id: crypto.randomUUID(), correction: res.correction, date: new Date(), shoba: selectedShoba }, ...prev]);
+          toast({ title: "✨ اكتمل التصحيح!", description: "تم تحليل التمرين وإضافة الحل النموذجي." });
+          clearFile(); setNotes("");
+        },
+        onError: () => toast({ title: "حدث خطأ في التصحيح", variant: "destructive" })
+      });
+    } catch {
+      toast({ title: "حدث خطأ أثناء معالجة الصورة", variant: "destructive" });
+    }
+  };
+ 
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row relative">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[100px]" />
+      </div>
+ 
+      {/* SIDEBAR */}
+      <aside className="w-full md:w-80 lg:w-96 bg-white/50 dark:bg-secondary/30 backdrop-blur-2xl border-l border-primary/20 flex flex-col z-10 shrink-0 shadow-2xl overflow-y-auto max-h-screen">
+        <div className="p-6 md:p-8 flex-1 flex flex-col gap-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">⚙️ لوحة التحكم</h2>
+            <button onClick={handleLogout} className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors" title="تسجيل الخروج">
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+ 
+          {/* Countdown */}
+          <div className="bg-primary/10 border border-primary/30 rounded-3xl p-6 text-center relative overflow-hidden group">
+            <CalendarDays className="w-8 h-8 text-primary mx-auto mb-2 opacity-80" />
+            <p className="text-sm font-medium text-foreground/80 mb-1">باقي للبكالوريا</p>
+            <div className="text-4xl font-black text-foreground">{daysLeft} <span className="text-xl font-bold text-foreground/60">يوم</span></div>
+          </div>
+ 
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+ 
+          {/* Shoba Select */}
+          <div className="space-y-3">
+            <label className="text-sm font-bold text-foreground/80 block">اختر شعبتك:</label>
+            <div className="relative">
+              <select value={selectedShoba} onChange={(e) => setSelectedShoba(e.target.value)}
+                className="w-full appearance-none bg-background/50 border border-primary/30 hover:border-primary/60 rounded-xl px-5 py-4 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer">
+                {SHOBAS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="w-5 h-5 text-primary" />
+              </div>
+            </div>
+          </div>
+ 
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+ 
+          {/* Upload */}
+          <div className="space-y-3">
+            <label className="text-sm font-bold text-foreground/80 block">📸 ارفع التمرين:</label>
+            <input type="file" ref={fileInputRef} accept="image/jpeg, image/png, image/jpg" className="hidden" onChange={handleFileChange} />
+            {!previewUrl ? (
+              <button onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-primary/40 hover:border-primary bg-background/30 hover:bg-primary/5 transition-all rounded-2xl p-8 flex flex-col items-center gap-3 group">
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Upload className="w-6 h-6 text-primary" />
+                </div>
+                <span className="font-bold text-foreground/80">اختر صورة أو اسحبها هنا</span>
+                <span className="text-xs text-foreground/50">دقة عالية لضمان صحة التصحيح</span>
+              </button>
+            ) : (
+              <div className="relative rounded-2xl overflow-hidden border-2 border-primary/50 group bg-black/5 p-2">
+                <img src={previewUrl} alt="Preview" className="w-full h-48 object-contain rounded-xl" />
+                <div className="absolute inset-0 bg-background/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-primary text-white dark:text-background p-3 rounded-full hover:scale-110 transition-transform">
+                    <ImageIcon className="w-5 h-5" />
+                  </button>
+                  <button onClick={clearFile} className="bg-destructive text-white p-3 rounded-full hover:scale-110 transition-transform">
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+ 
+          {/* Notes */}
+          <div className="space-y-3">
+            <label className="text-sm font-bold text-foreground/80 block">ملاحظة للأستاذ (اختياري):</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+              placeholder="مثلاً: ما فهمتش السؤال الثالث مليح..."
+              className="w-full bg-background/50 border border-primary/30 hover:border-primary/60 focus:border-primary rounded-xl px-5 py-4 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none min-h-[100px]" />
+          </div>
+ 
+          {/* Actions */}
+          <div className="mt-auto pt-4 flex flex-col gap-3">
+            <button onClick={handleSubmit} disabled={isPending || !file}
+              className="w-full bg-gradient-to-r from-primary to-accent text-white dark:text-background font-black text-lg rounded-2xl py-4 px-6 shadow-[0_0_20px_rgba(0,191,255,0.3)] hover:shadow-[0_10px_30px_rgba(0,191,255,0.5)] hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {isPending ? (
+                <><div className="w-6 h-6 border-3 border-current border-t-transparent rounded-full animate-spin" /> الأستاذ يدقق في الورقة...</>
+              ) : <>✨ ابدأ التصحيح المنهجي</>}
+            </button>
+            {history.length > 0 && (
+              <button onClick={handleClearHistory}
+                className="w-full bg-black/5 dark:bg-white/5 hover:bg-destructive/20 text-foreground hover:text-destructive border border-primary/10 hover:border-destructive/50 font-bold text-lg rounded-2xl py-4 px-6 transition-all flex items-center justify-center gap-2">
+                <Trash2 className="w-5 h-5" /> مسح السبورة
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+ 
+      {/* MAIN */}
+      <main className="flex-1 flex flex-col z-10 h-screen overflow-y-auto overflow-x-hidden">
+        {/* Navigation Tabs */}
+        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-primary/10 px-6 py-4 flex justify-center md:justify-start">
+          <div className="flex bg-secondary/30 dark:bg-background/50 p-1.5 rounded-full border border-primary/10">
+            <button className="px-6 py-2.5 rounded-full font-bold text-sm md:text-base bg-primary text-white dark:text-background shadow-md flex items-center gap-2">
+              <Sparkles className="w-4 h-4" /> مختبر التصحيح
+            </button>
+            <Link href="/chat">
+              <a className="px-6 py-2.5 rounded-full font-bold text-sm md:text-base text-foreground/70 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" /> الدردشة مع الشيخ ذكي
+              </a>
+            </Link>
+          </div>
+        </div>
+ 
+        <div className="p-6 md:p-10 lg:p-14 max-w-4xl mx-auto w-full">
+          <div className="mb-10 text-center md:text-right">
+            <h1 className="text-4xl md:text-5xl font-black text-foreground mb-4">🤖 مكتب الأستاذ المصحح الذكي</h1>
+            <div className="bg-primary/5 dark:bg-primary/10 border-r-4 border-primary rounded-lg p-5">
+              <p className="text-lg md:text-xl text-primary font-medium italic">
+                "نصيحة الشيخ ذكي: الحفظ بلا منهجية هو 'تخلاط'.. ركز على الكلمات المفتاحية لضمان الـ 20!"
+              </p>
+            </div>
+          </div>
+ 
+          <div className="space-y-8">
+            <AnimatePresence mode="popLayout">
+              {history.length === 0 ? (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center text-center pt-20 pb-10 opacity-70">
+                  <div className="w-40 h-40 mb-6 relative">
+                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+                    <img src={`${import.meta.env.BASE_URL}images/avatar.png`} alt="الشيخ ذكي" className="w-full h-full object-contain relative z-10 drop-shadow-[0_10px_20px_rgba(0,191,255,0.4)]" />
+                  </div>
+                  <h3 className="text-3xl font-bold text-foreground mb-3">مرحباً بك في مختبر التصحيح!</h3>
+                  <p className="text-xl text-foreground/70 max-w-lg leading-relaxed">
+                    ارفع صورة تمرينك وسأقوم بتصحيحه بمنهجية شعبة <span className="text-primary font-bold">{selectedShoba}</span>.
+                  </p>
+                </motion.div>
+              ) : (
+                history.map((item, index) => (
+                  <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}
+                    className="bg-white/80 dark:bg-secondary/40 backdrop-blur-xl border border-primary/10 border-r-4 border-r-primary rounded-2xl p-6 md:p-8 shadow-xl">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-primary/10">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-2 rounded-lg"><Sparkles className="w-5 h-5 text-primary" /></div>
+                        <span className="font-bold text-lg text-primary">{item.shoba}</span>
+                      </div>
+                      <span className="text-sm text-foreground/50 font-mono">{item.date.toLocaleTimeString('ar-DZ')}</span>
+                    </div>
+                    <div className="prose prose-lg dark:prose-invert max-w-none text-right font-sans prose-headings:text-accent prose-a:text-primary prose-p:leading-loose text-foreground">
+                      <ReactMarkdown>{item.correction}</ReactMarkdown>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+________________________________________
+artifacts/sheikh-dhaki/src/pages/Chat.tsx
+import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
+import { motion } from "framer-motion";
+import { Sparkles, Trash2, Send, MessageSquare, Plus, AlertTriangle, MessageCircle, Bot } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+ 
+type Conversation = { id: number; title: string | null; createdAt: string };
+type Message = { id: number; conversationId: number; role: "user" | "assistant"; content: string; createdAt: string };
+ 
+export default function Chat() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+ 
+  const fetchConversations = async () => {
+    try {
+      const res = await fetch("/api/gemini/conversations");
+      if (res.ok) setConversations(await res.json());
+    } catch (err) { console.error(err); }
+  };
+ 
+  const fetchMessages = async (convId: number) => {
+    try {
+      const res = await fetch(`/api/gemini/conversations/${convId}/messages`);
+      if (res.ok) setMessages(await res.json());
+    } catch (err) { console.error(err); }
+  };
+ 
+  useEffect(() => { fetchConversations(); }, []);
+  useEffect(() => {
+    if (activeConversationId) fetchMessages(activeConversationId);
+    else setMessages([]);
+  }, [activeConversationId]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isTyping]);
+ 
+  const handleNewConversation = async () => {
+    try {
+      const res = await fetch("/api/gemini/conversations", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "محادثة جديدة" })
+      });
+      if (res.ok) {
+        const newConv = await res.json();
+        setConversations(prev => [newConv, ...prev]);
+        setActiveConversationId(newConv.id);
+      }
+    } catch (err) { toast({ title: "فشل إنشاء محادثة", variant: "destructive" }); }
+  };
+ 
+  const handleDeleteConversation = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/gemini/conversations/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setConversations(prev => prev.filter(c => c.id !== id));
+        if (activeConversationId === id) setActiveConversationId(null);
+        toast({ title: "تم حذف المحادثة" });
+      }
+    } catch (err) { console.error(err); }
+  };
+ 
+  const handleSendMessage = async () => {
+    if (!input.trim() || !activeConversationId) return;
+    const userMessageContent = input.trim();
+    setInput("");
+ 
+    const tempUserMsg: Message = { id: Date.now(), conversationId: activeConversationId, role: "user", content: userMessageContent, createdAt: new Date().toISOString() };
+    setMessages(prev => [...prev, tempUserMsg]);
+    setIsTyping(true);
+ 
+    const assistantMsgId = Date.now() + 1;
+    let assistantContent = "";
+    setMessages(prev => [...prev, { id: assistantMsgId, conversationId: activeConversationId, role: "assistant", content: "", createdAt: new Date().toISOString() }]);
+ 
+    try {
+      const res = await fetch(`/api/gemini/conversations/${activeConversationId}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: userMessageContent })
+      });
+      if (!res.ok || !res.body) throw new Error("No response");
+      
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const lines = decoder.decode(value).split("\n").filter(l => l.trim());
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.content) {
+                assistantContent += data.content;
+                setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: assistantContent } : m));
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch (err) {
+      toast({ title: "حدث خطأ في الإرسال", variant: "destructive" });
+      if (!assistantContent) setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
+    } finally {
+      setIsTyping(false);
+      fetchMessages(activeConversationId);
+    }
+  };
+ 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
+  };
+ 
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row relative">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[120px]" />
+      </div>
+ 
+      {/* Conversations Sidebar */}
+      <aside className="w-full md:w-80 bg-white/50 dark:bg-secondary/30 backdrop-blur-2xl border-l border-primary/20 flex flex-col z-10 shrink-0 shadow-2xl h-[40vh] md:h-screen">
+        <div className="p-6 flex flex-col h-full gap-6">
+          <button onClick={handleNewConversation}
+            className="w-full bg-gradient-to-r from-primary to-accent text-white dark:text-background font-bold text-base rounded-xl py-3 px-4 shadow-[0_5px_15px_rgba(0,191,255,0.2)] hover:shadow-[0_10px_25px_rgba(0,191,255,0.4)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
+            <Plus className="w-5 h-5" /> محادثة جديدة
+          </button>
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {conversations.length === 0 ? (
+              <p className="text-center text-foreground/50 py-10 text-sm">لا توجد محادثات سابقة</p>
+            ) : conversations.map(conv => (
+              <div key={conv.id} onClick={() => setActiveConversationId(conv.id)}
+                className={`w-full text-right p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all border group ${activeConversationId === conv.id ? "bg-primary/10 border-primary shadow-sm" : "bg-transparent border-transparent hover:bg-black/5 dark:hover:bg-white/5"}`}>
+                <div className="flex items-center gap-3 truncate">
+                  <MessageCircle className={`w-5 h-5 shrink-0 ${activeConversationId === conv.id ? "text-primary" : "text-foreground/50"}`} />
+                  <span className={`truncate font-medium ${activeConversationId === conv.id ? "text-primary" : "text-foreground/80"}`}>{conv.title || "محادثة..."}</span>
+                </div>
+                <button onClick={(e) => handleDeleteConversation(conv.id, e)}
+                  className="opacity-0 group-hover:opacity-100 text-destructive/70 hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-all">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+ 
+      {/* Chat Area */}
+      <main className="flex-1 flex flex-col z-10 h-[60vh] md:h-screen">
+        {/* Navigation Tabs */}
+        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-primary/10 px-6 py-4 flex justify-center md:justify-start">
+          <div className="flex bg-secondary/30 dark:bg-background/50 p-1.5 rounded-full border border-primary/10">
+            <Link href="/">
+              <a className="px-6 py-2.5 rounded-full font-bold text-sm md:text-base text-foreground/70 hover:text-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4" /> مختبر التصحيح
+              </a>
+            </Link>
+            <button className="px-6 py-2.5 rounded-full font-bold text-sm md:text-base bg-primary text-white dark:text-background shadow-md flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" /> الدردشة مع الشيخ ذكي
+            </button>
+          </div>
+        </div>
+ 
+        {/* Warning Banner */}
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center justify-center gap-2 text-destructive font-medium text-sm">
+          <AlertTriangle className="w-4 h-4" />
+          <span>هذا المساعد مخصص للدراسة فقط. يرفض أي سؤال خارج نطاق البكالوريا.</span>
+        </div>
+ 
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+          {!activeConversationId ? (
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-70">
+              <Bot className="w-20 h-20 text-primary mb-4" />
+              <h3 className="text-2xl font-bold mb-3">الدردشة مع الشيخ ذكي 🎓</h3>
+              <p className="text-lg text-foreground/70 max-w-md">أسئلتك في الدراسة فقط - للباك. أنشئ محادثة جديدة للبدء.</p>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-70">
+              <Bot className="w-16 h-16 text-primary mb-4" />
+              <p className="text-lg text-foreground/80 font-medium">أنا الشيخ ذكي، تفضل اطرح سؤالك حول أي مادة...</p>
+            </div>
+          ) : (
+            messages.map(msg => (
+              <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.role === "user" ? "justify-start" : "justify-end"}`}>
+                <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-4 md:p-6 ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-tr-sm shadow-md" : "bg-white/80 dark:bg-secondary/50 backdrop-blur-sm border border-primary/10 rounded-tl-sm shadow-sm"}`}>
+                  <div className="flex items-center gap-2 mb-2 opacity-80">
+                    {msg.role === "user" ? <span className="font-bold text-sm">أنت</span> : <><Bot className="w-4 h-4" /><span className="font-bold text-sm">الشيخ ذكي</span></>}
+                  </div>
+                  {msg.role === "user" ? (
+                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  ) : (
+                    <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none text-right font-sans leading-relaxed">
+                      {msg.content ? <ReactMarkdown>{msg.content}</ReactMarkdown> : (
+                        <div className="flex space-x-1 space-x-reverse h-6 items-center">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+ 
+        {/* Input */}
+        {activeConversationId && (
+          <div className="p-4 md:p-6 bg-background/90 backdrop-blur-lg border-t border-primary/10">
+            <div className="max-w-4xl mx-auto relative">
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
+                placeholder="اكتب سؤالك هنا... (Shift+Enter لسطر جديد)"
+                className="w-full bg-white dark:bg-secondary/40 border border-primary/20 hover:border-primary/50 focus:border-primary rounded-2xl pl-16 pr-5 py-4 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all resize-none min-h-[60px] max-h-[200px] shadow-sm"
+                rows={1} disabled={isTyping} />
+              <button onClick={handleSendMessage} disabled={!input.trim() || isTyping}
+                className="absolute left-3 bottom-3 p-3 bg-primary text-primary-foreground rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"> **...**
+ 
+_This response is too long to display in full._
