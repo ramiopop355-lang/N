@@ -48,6 +48,18 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## Artifacts
+
+### `artifacts/sheikh-dhaki` (`@workspace/sheikh-dhaki`)
+
+React + Vite frontend for "الشيخ ذكي - مختبر التصحيح". An AI-powered Algerian BAC exercise correction platform.
+
+- **Tech**: React, Vite, Tailwind CSS, Framer Motion, Shadcn UI, react-markdown
+- **Pages**: Login (`/login`), Dashboard (`/`)
+- **Features**: Image upload, AI correction with streaming SSE, correction history, dark mode, copy correction
+- **Routes**: Preview path `/`
+- `pnpm --filter @workspace/sheikh-dhaki run dev` — dev server
+
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)
