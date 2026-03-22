@@ -9,6 +9,7 @@
   --font-sans: 'Cairo', sans-serif;
   --font-display: 'Cairo', sans-serif;
 
+  --color-highlight: hsl(var(--highlight));
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-primary: hsl(var(--primary));
@@ -35,6 +36,7 @@
 
 :root {
   /* LIGHT MODE — ألوان هادئة ومريحة للعين */
+  --highlight: 38 62% 50%;
   --background: 220 18% 95%;
   --foreground: 222 30% 18%;
   --card: 0 0% 100%;
@@ -57,6 +59,7 @@
 
 .dark {
   /* DARK MODE — داكن هادئ غير ساطع */
+  --highlight: 40 55% 65%;
   --background: 224 28% 10%;
   --foreground: 220 20% 90%;
   --card: 224 24% 14%;

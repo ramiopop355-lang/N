@@ -125,7 +125,7 @@ export default function Login() {
               <h1 className="text-xl font-black text-foreground tracking-tight mb-0.5">
                 الأستاذ المصحح
               </h1>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-highlight/80 leading-relaxed">
                 مختبر تصحيح تمارين الباك بالمنهجية الجزائرية
               </p>
             </motion.div>
@@ -237,17 +237,17 @@ export default function Login() {
 
                         <div className="bg-muted/50 rounded-2xl p-3.5 space-y-2.5">
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-muted-foreground">المبلغ</span>
+                            <span className="text-xs text-highlight/75">المبلغ</span>
                             <span className="text-sm font-black text-foreground">1000 دج</span>
                           </div>
                           <div className="h-px bg-border" />
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-muted-foreground">الطريقة</span>
+                            <span className="text-xs text-highlight/75">الطريقة</span>
                             <span className="text-sm font-bold text-foreground">بريدي موب</span>
                           </div>
                           <div className="h-px bg-border" />
                           <div className="space-y-1.5">
-                            <span className="text-xs text-muted-foreground">رقم RIP</span>
+                            <span className="text-xs text-highlight/75">رقم RIP</span>
                             <RIPCopyField rip="00799999002789880450" />
                           </div>
                         </div>
@@ -284,7 +284,7 @@ export default function Login() {
                             </div>
                             <div className="text-center">
                               <p className="text-sm font-bold text-foreground mb-0.5">تم استقبال الوصل!</p>
-                              <p className="text-xs text-muted-foreground">سيتم تفعيل حسابك خلال دقائق</p>
+                              <p className="text-xs text-highlight/70">سيتم تفعيل حسابك خلال دقائق</p>
                             </div>
                             <button
                               onClick={() => setTab("login")}
@@ -315,7 +315,7 @@ export default function Login() {
                                   </div>
                                   <div className="text-center">
                                     <p className="text-sm font-semibold text-foreground">اختر صورة الوصل</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG · التفعيل فوري</p>
+                                    <p className="text-xs text-highlight/70 mt-0.5">JPG, PNG · التفعيل فوري</p>
                                   </div>
                                 </>
                               )}
@@ -340,7 +340,7 @@ export default function Login() {
 
           {/* Footer */}
           <div className="border-t border-border px-6 py-3 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-highlight/70">
               © منصة حل عقدة الباك 2026
             </p>
             <button

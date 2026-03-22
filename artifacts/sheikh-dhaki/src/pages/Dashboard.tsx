@@ -206,7 +206,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-black text-foreground">الأستاذ المصحح</h2>
-              <p className="text-xs text-muted-foreground">مختبر التصحيح الذكي</p>
+              <p className="text-xs text-highlight/75">مختبر التصحيح الذكي</p>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -229,18 +229,18 @@ export default function Dashboard() {
           {/* Countdown */}
           <div className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-4 text-center">
             <CalendarDays className="w-5 h-5 text-primary mx-auto mb-1" />
-            <p className="text-xs text-muted-foreground mb-1">باقي للبكالوريا 2026</p>
+            <p className="text-xs text-highlight/70 mb-1">باقي للبكالوريا 2026</p>
             <div className="text-4xl font-black text-primary">
               {daysLeft}
             </div>
-            <p className="text-xs font-semibold text-muted-foreground mt-0.5">يوم</p>
+            <p className="text-xs font-semibold text-highlight/65 mt-0.5">يوم</p>
           </div>
 
           <div className="h-px bg-border" />
 
           {/* Shoba */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground block">اختر شعبتك</label>
+            <label className="text-xs font-bold text-highlight/75 block">اختر شعبتك</label>
             <div className="relative">
               <select
                 value={selectedShoba}
@@ -255,7 +255,7 @@ export default function Dashboard() {
 
           {/* Upload */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground block">ارفع التمرين</label>
+            <label className="text-xs font-bold text-highlight/75 block">ارفع التمرين</label>
             <input
               type="file"
               ref={fileInputRef}
@@ -274,7 +274,7 @@ export default function Dashboard() {
                   <Upload className="w-5 h-5 text-primary" />
                 </div>
                 <span className="text-sm font-semibold text-foreground/80">اختر صورة أو اسحبها</span>
-                <span className="text-xs text-muted-foreground">JPG, PNG · أقصى 10MB</span>
+                <span className="text-xs text-highlight/65">JPG, PNG · أقصى 10MB</span>
               </button>
             ) : (
               <div className="relative rounded-xl overflow-hidden border border-border group">
@@ -293,7 +293,7 @@ export default function Dashboard() {
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground block">ملاحظة للأستاذ (اختياري)</label>
+            <label className="text-xs font-bold text-highlight/75 block">ملاحظة للأستاذ (اختياري)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -376,7 +376,7 @@ export default function Dashboard() {
                 <MessageSquare className="w-10 h-10 text-primary/40" />
               </div>
               <h3 className="text-base font-bold text-foreground mb-2">السبورة فارغة</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
+              <p className="text-sm text-highlight/65 max-w-xs">
                 ارفع صورة تمرينك واختر شعبتك وسيصحح الأستاذ الذكي تمرينك فوراً
               </p>
             </div>
