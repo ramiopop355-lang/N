@@ -3,9 +3,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  GraduationCap, ShieldCheck, UserCircle, Rocket, CreditCard, Upload, Moon, Sun
+  LogIn, ShieldCheck, CreditCard, Upload, Moon, Sun,
+  CheckCircle2, Copy, Check, ArrowLeft
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AppLogo from "@/components/AppLogo";
 
 function useDarkModeToggle() {
   const getInitial = () => {
@@ -13,13 +15,11 @@ function useDarkModeToggle() {
     if (stored !== null) return stored === "true";
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   };
-
   const [isDark, setIsDark] = useState(() => {
     const d = getInitial();
     document.documentElement.classList.toggle("dark", d);
     return d;
   });
-
   const toggle = () => {
     setIsDark((prev) => {
       const next = !prev;
@@ -28,13 +28,39 @@ function useDarkModeToggle() {
       return next;
     });
   };
-
   return { isDark, toggle };
+}
+
+function RIPCopyField({ rip }: { rip: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(rip);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="w-full flex items-center justify-between gap-3 bg-muted border border-border hover:border-primary/40 rounded-xl px-4 py-3 transition-all group"
+    >
+      <span className="font-mono text-sm text-foreground tracking-wide select-all">
+        {rip}
+      </span>
+      <span className="shrink-0 text-muted-foreground group-hover:text-primary transition-colors">
+        {copied
+          ? <Check className="w-4 h-4 text-green-500" />
+          : <Copy className="w-4 h-4" />
+        }
+      </span>
+    </button>
+  );
 }
 
 export default function Login() {
   const [tab, setTab] = useState<"login" | "activate">("login");
+  const [activateStep, setActivateStep] = useState<1 | 2>(1);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
   const { login } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -51,142 +77,282 @@ export default function Login() {
       setIsUploading(true);
       setTimeout(() => {
         setIsUploading(false);
-        toast({ title: "تم استقبال الوصل!", description: "حسابك مفعل الآن. يمكنك الدخول." });
-        setTab("login");
-      }, 1500);
+        setUploaded(true);
+        toast({ title: "تم استقبال الوصل!", description: "سيتم تفعيل حسابك خلال دقائق." });
+      }, 1800);
     }
   };
 
+  const resetActivate = () => {
+    setActivateStep(1);
+    setUploaded(false);
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+
+      {/* Background pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-accent/5 blur-3xl" />
+      </div>
+
       <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="w-full max-w-sm relative"
       >
-        <div className="bg-card border border-border rounded-3xl p-8 shadow-xl shadow-primary/5">
-          {/* Logo */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.15, type: "spring", stiffness: 220 }}
-            className="w-16 h-16 mx-auto bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg shadow-primary/25 mb-5"
-          >
-            <GraduationCap className="w-8 h-8 text-primary-foreground" />
-          </motion.div>
+        {/* Card */}
+        <div className="bg-card border border-border rounded-3xl shadow-xl shadow-black/8 overflow-hidden">
 
-          {/* Title */}
-          <h1 className="text-2xl font-black text-foreground text-center mb-1">
-            الأستاذ المصحح
-          </h1>
-          <p className="text-sm text-muted-foreground text-center mb-5">
-            مختبر تصحيح تمارين البكالوريا بالمنهجية الجزائرية
-          </p>
+          {/* Header band */}
+          <div className="px-8 pt-8 pb-6 text-center">
+            <motion.div
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 20 }}
+              className="inline-flex mb-4"
+            >
+              <AppLogo size={60} />
+            </motion.div>
 
-          {/* Badge */}
-          <div className="flex justify-center mb-5">
-            <span className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-bold px-4 py-1.5 rounded-full shadow shadow-primary/30">
-              اشتراك التفعيل: 1000 دج
-            </span>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h1 className="text-xl font-black text-foreground tracking-tight mb-0.5">
+                الأستاذ المصحح
+              </h1>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                مختبر تصحيح تمارين الباك بالمنهجية الجزائرية
+              </p>
+            </motion.div>
           </div>
 
-          <div className="h-px bg-border mb-5" />
+          {/* Divider */}
+          <div className="h-px bg-border mx-6" />
 
           {/* Tabs */}
-          <div className="flex gap-1.5 bg-muted p-1 rounded-xl mb-5">
-            {(["login", "activate"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
-                  tab === t
-                    ? "bg-primary text-primary-foreground shadow shadow-primary/30"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t === "login"
-                  ? <><UserCircle className="w-4 h-4" /> دخول الطالب</>
-                  : <><ShieldCheck className="w-4 h-4" /> تفعيل الحساب</>
-                }
-              </button>
-            ))}
+          <div className="px-6 pt-5">
+            <div className="flex bg-muted rounded-xl p-1 gap-1">
+              {(["login", "activate"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { setTab(t); resetActivate(); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
+                    tab === t
+                      ? "bg-card text-foreground shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground/80"
+                  }`}
+                >
+                  {t === "login"
+                    ? <><LogIn className="w-3.5 h-3.5" /> دخول</>
+                    : <><ShieldCheck className="w-3.5 h-3.5" /> تفعيل</>
+                  }
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Content */}
-          <div className="min-h-[140px]">
+          <div className="px-6 pt-4 pb-6">
             <AnimatePresence mode="wait">
-              {tab === "login" ? (
+
+              {/* LOGIN TAB */}
+              {tab === "login" && (
                 <motion.div
                   key="login"
-                  initial={{ opacity: 0, x: 12 }}
+                  initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.18 }}
+                  className="space-y-4"
                 >
+                  {/* Info box */}
+                  <div className="flex items-start gap-3 bg-primary/6 border border-primary/15 rounded-2xl p-3.5">
+                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-xs text-foreground/80 leading-relaxed">
+                      إذا كان حسابك مفعلاً، اضغط على الزر للدخول مباشرة.
+                    </p>
+                  </div>
+
                   <button
                     onClick={handleLogin}
-                    className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-l from-primary to-accent text-primary-foreground font-black text-base rounded-xl py-3.5 px-6 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 hover:-translate-y-0.5 transition-all duration-200"
+                    className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-3 px-5 transition-all duration-200 shadow-sm shadow-primary/20 hover:shadow-md hover:shadow-primary/25 hover:-translate-y-px active:translate-y-0"
                   >
+                    <LogIn className="w-4 h-4" />
                     الدخول إلى مختبر التصحيح
-                    <Rocket className="w-5 h-5" />
                   </button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="activate"
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 12 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center gap-2 text-sm font-bold text-primary">
-                    <CreditCard className="w-4 h-4" />
-                    أرسل مبلغ 1000 دج عبر بريدي موب
-                  </div>
 
-                  <div className="bg-muted border border-border rounded-xl py-2.5 px-4 text-center font-mono text-sm select-all text-foreground">
-                    RIP: 00799999002789880450
-                  </div>
-
-                  <label className="flex flex-col items-center gap-2 border-2 border-dashed border-primary/30 hover:border-primary bg-primary/5 hover:bg-primary/8 transition-colors rounded-xl p-5 cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={isUploading} />
-                    {isUploading ? (
-                      <>
-                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        <span className="text-sm font-medium text-primary">جاري التحقق...</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Upload className="w-4 h-4 text-primary" />
-                        </div>
-                        <span className="text-sm font-semibold text-foreground">ارفع صورة الوصل</span>
-                        <span className="text-xs text-muted-foreground">التفعيل فوري · JPG, PNG</span>
-                      </>
-                    )}
-                  </label>
+                  <p className="text-center text-xs text-muted-foreground">
+                    ليس لديك حساب؟{" "}
+                    <button
+                      onClick={() => setTab("activate")}
+                      className="text-primary font-bold hover:underline"
+                    >
+                      فعّل حسابك
+                    </button>
+                  </p>
                 </motion.div>
               )}
+
+              {/* ACTIVATE TAB */}
+              {tab === "activate" && (
+                <motion.div
+                  key="activate"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.18 }}
+                  className="space-y-4"
+                >
+                  {/* Steps indicator */}
+                  <div className="flex items-center gap-2">
+                    <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-black transition-all ${activateStep === 1 ? "bg-primary text-primary-foreground" : "bg-green-500 text-white"}`}>
+                      {activateStep > 1 ? <Check className="w-3.5 h-3.5" /> : "1"}
+                    </div>
+                    <div className="flex-1 h-px bg-border" />
+                    <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-black transition-all ${activateStep === 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      2
+                    </div>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    {/* STEP 1: Payment info */}
+                    {activateStep === 1 && (
+                      <motion.div
+                        key="step1"
+                        initial={{ opacity: 0, x: 8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -8 }}
+                        transition={{ duration: 0.15 }}
+                        className="space-y-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-bold text-foreground">أرسل رسوم التفعيل</span>
+                        </div>
+
+                        <div className="bg-muted/50 rounded-2xl p-3.5 space-y-2.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground">المبلغ</span>
+                            <span className="text-sm font-black text-foreground">1000 دج</span>
+                          </div>
+                          <div className="h-px bg-border" />
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground">الطريقة</span>
+                            <span className="text-sm font-bold text-foreground">بريدي موب</span>
+                          </div>
+                          <div className="h-px bg-border" />
+                          <div className="space-y-1.5">
+                            <span className="text-xs text-muted-foreground">رقم RIP</span>
+                            <RIPCopyField rip="00799999002789880450" />
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => setActivateStep(2)}
+                          className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-3 transition-all duration-200 shadow-sm shadow-primary/20 hover:shadow-md hover:-translate-y-px active:translate-y-0"
+                        >
+                          دفعت؟ ارفع الوصل
+                          <ArrowLeft className="w-4 h-4" />
+                        </button>
+                      </motion.div>
+                    )}
+
+                    {/* STEP 2: Upload receipt */}
+                    {activateStep === 2 && (
+                      <motion.div
+                        key="step2"
+                        initial={{ opacity: 0, x: 8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -8 }}
+                        transition={{ duration: 0.15 }}
+                        className="space-y-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Upload className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-bold text-foreground">ارفع صورة الوصل</span>
+                        </div>
+
+                        {uploaded ? (
+                          <div className="flex flex-col items-center gap-3 py-6">
+                            <div className="w-12 h-12 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center">
+                              <CheckCircle2 className="w-6 h-6 text-green-500" />
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-bold text-foreground mb-0.5">تم استقبال الوصل!</p>
+                              <p className="text-xs text-muted-foreground">سيتم تفعيل حسابك خلال دقائق</p>
+                            </div>
+                            <button
+                              onClick={() => setTab("login")}
+                              className="text-xs text-primary font-bold hover:underline"
+                            >
+                              الذهاب إلى الدخول
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <label className={`flex flex-col items-center gap-2.5 border-2 border-dashed rounded-2xl p-5 cursor-pointer transition-all duration-200 ${isUploading ? "border-primary/40 bg-primary/5" : "border-border hover:border-primary/50 hover:bg-primary/4"}`}>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleUpload}
+                                disabled={isUploading}
+                              />
+                              {isUploading ? (
+                                <>
+                                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                  <span className="text-sm font-semibold text-primary">جاري الرفع...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="w-10 h-10 rounded-full bg-primary/8 border border-primary/20 flex items-center justify-center">
+                                    <Upload className="w-4.5 h-4.5 text-primary" />
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-sm font-semibold text-foreground">اختر صورة الوصل</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG · التفعيل فوري</p>
+                                  </div>
+                                </>
+                              )}
+                            </label>
+
+                            <button
+                              onClick={() => setActivateStep(1)}
+                              className="w-full text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
+                            >
+                              ← رجوع للخطوة السابقة
+                            </button>
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+
             </AnimatePresence>
           </div>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-5">
-            حقوق الطبع والنشر محفوظة © منصة حل عقدة الباك 2026
-          </p>
+          <div className="border-t border-border px-6 py-3 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              © منصة حل عقدة الباك 2026
+            </p>
+            <button
+              onClick={toggle}
+              className="w-7 h-7 rounded-full border border-border bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border/80 transition-all"
+              title={isDark ? "الوضع النهاري" : "الوضع الليلي"}
+            >
+              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </div>
       </motion.div>
-
-      {/* Dark Mode Toggle */}
-      <button
-        onClick={toggle}
-        title={isDark ? "الوضع النهاري" : "الوضع الليلي"}
-        className="fixed bottom-5 left-5 w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 shadow-md transition-all duration-200 hover:scale-105"
-      >
-        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-      </button>
     </div>
   );
 }
