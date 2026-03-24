@@ -35,9 +35,9 @@
 }
 
 :root {
-  /* LIGHT MODE — ألوان هادئة ومريحة للعين */
+  /* LIGHT MODE — خلفية صفراء باهتة #FFF9E3 */
   --highlight: 38 62% 50%;
-  --background: 220 18% 95%;
+  --background: 46 100% 95%;
   --foreground: 222 30% 18%;
   --card: 0 0% 100%;
   --card-foreground: 222 30% 18%;
