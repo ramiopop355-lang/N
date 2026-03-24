@@ -183,7 +183,7 @@ export default function Login() {
                     className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-3 px-5 transition-all duration-200 shadow-sm shadow-primary/20 hover:shadow-md hover:shadow-primary/25 hover:-translate-y-px active:translate-y-0"
                   >
                     <LogIn className="w-4 h-4" />
-                    الدخول إلى مختبر التصحيح
+                    ⚡ استمتع بالفترة المجانية مؤقتاً
                   </button>
 
                   <p className="text-center text-xs text-muted-foreground">
