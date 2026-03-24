@@ -238,7 +238,13 @@ export default function Login() {
                         <div className="bg-muted/50 rounded-2xl p-3.5 space-y-2.5">
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-highlight/75">المبلغ</span>
-                            <span className="text-sm font-black text-foreground">1000 دج</span>
+                            <div className="text-left flex flex-col items-end gap-0.5">
+                              <span className="text-xs text-muted-foreground line-through">1000 دج</span>
+                              <span className="text-base font-black text-green-600 dark:text-green-400">500 دج</span>
+                            </div>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300/60 rounded-xl px-3 py-2 text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+                            ادفع <strong>500 دج</strong> الآن واحصل على <strong>(نسخة الطالب المتميز)</strong> التي تفتح لك ميزات سرية مستقبلاً ✨
                           </div>
                           <div className="h-px bg-border" />
                           <div className="flex justify-between items-center">
