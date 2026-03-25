@@ -35,44 +35,45 @@
 }
 
 :root {
-  --highlight: 38 62% 45%;
-  --background: 44 80% 96%;
-  --foreground: 222 38% 14%;
+  /* ثيم أزرق-أصفر حيوي */
+  --highlight: 42 90% 40%;
+  --background: 210 60% 97%;
+  --foreground: 220 45% 12%;
   --card: 0 0% 100%;
-  --card-foreground: 222 38% 14%;
-  --primary: 224 68% 46%;
+  --card-foreground: 220 45% 12%;
+  --primary: 217 90% 52%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 44 60% 90%;
-  --secondary-foreground: 222 50% 32%;
-  --accent: 224 60% 38%;
-  --accent-foreground: 0 0% 100%;
-  --muted: 44 40% 92%;
-  --muted-foreground: 220 16% 46%;
-  --border: 38 30% 82%;
-  --input: 38 30% 82%;
-  --ring: 224 68% 46%;
+  --secondary: 45 95% 90%;
+  --secondary-foreground: 220 50% 25%;
+  --accent: 43 96% 52%;
+  --accent-foreground: 220 45% 12%;
+  --muted: 210 40% 93%;
+  --muted-foreground: 218 20% 44%;
+  --border: 210 30% 84%;
+  --input: 210 30% 84%;
+  --ring: 217 90% 52%;
   --destructive: 0 72% 52%;
   --destructive-foreground: 0 0% 100%;
   --radius: 0.75rem;
 }
 
 .dark {
-  --highlight: 40 55% 65%;
-  --background: 224 28% 10%;
-  --foreground: 220 20% 90%;
-  --card: 224 24% 14%;
-  --card-foreground: 220 20% 90%;
-  --primary: 224 70% 62%;
-  --primary-foreground: 224 28% 10%;
-  --secondary: 222 22% 20%;
-  --secondary-foreground: 220 20% 85%;
-  --accent: 224 62% 54%;
-  --accent-foreground: 224 28% 10%;
-  --muted: 222 20% 18%;
-  --muted-foreground: 220 14% 55%;
-  --border: 222 18% 22%;
-  --input: 222 18% 22%;
-  --ring: 224 70% 62%;
+  --highlight: 43 90% 62%;
+  --background: 220 35% 9%;
+  --foreground: 216 22% 90%;
+  --card: 220 30% 13%;
+  --card-foreground: 216 22% 90%;
+  --primary: 217 85% 62%;
+  --primary-foreground: 220 35% 9%;
+  --secondary: 220 25% 18%;
+  --secondary-foreground: 216 22% 82%;
+  --accent: 43 96% 52%;
+  --accent-foreground: 220 35% 9%;
+  --muted: 220 22% 17%;
+  --muted-foreground: 216 16% 54%;
+  --border: 220 20% 22%;
+  --input: 220 20% 22%;
+  --ring: 217 85% 62%;
   --destructive: 0 60% 48%;
   --destructive-foreground: 0 0% 98%;
 }

@@ -107,7 +107,7 @@ export default function Login() {
         <div className="bg-card border border-border rounded-3xl shadow-2xl shadow-black/10 overflow-hidden">
 
           {/* Top accent bar */}
-          <div className="h-1 bg-gradient-to-l from-primary via-primary/80 to-accent" />
+          <div className="h-1.5 bg-gradient-to-l from-accent via-yellow-300 to-primary" />
 
           {/* Header */}
           <div className="px-8 pt-7 pb-5 text-center">

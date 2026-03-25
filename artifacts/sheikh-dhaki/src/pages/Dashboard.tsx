@@ -311,7 +311,7 @@ export default function Dashboard() {
         <aside className="w-full md:w-80 lg:w-96 border-l border-border flex flex-col shrink-0 shadow-xl bg-card overflow-y-auto">
 
           {/* Brand Header */}
-          <div className="h-0.5 bg-gradient-to-l from-primary via-primary/70 to-accent" />
+          <div className="h-1.5 bg-gradient-to-l from-accent via-yellow-300 to-primary" />
           <div className="px-5 py-4 flex items-center justify-between border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -343,14 +343,18 @@ export default function Dashboard() {
           <div className="p-4 flex-1 flex flex-col gap-3">
 
             {/* Countdown */}
-            <div className="bg-gradient-to-br from-primary to-accent rounded-2xl p-4 text-primary-foreground shadow-lg shadow-primary/20">
-              <div className="flex items-center gap-2 mb-2 opacity-80">
-                <CalendarDays className="w-3.5 h-3.5" />
-                <span className="text-xs font-semibold">باقي للبكالوريا 2026</span>
-              </div>
-              <div className="flex items-end gap-2">
-                <span className="text-5xl font-black leading-none">{daysLeft}</span>
-                <span className="text-sm font-bold opacity-70 mb-1">يوم</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary via-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg shadow-primary/30">
+              <div className="absolute -top-4 -left-4 w-20 h-20 rounded-full bg-accent/30 blur-xl" />
+              <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full bg-yellow-300/20 blur-lg" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2 opacity-90">
+                  <CalendarDays className="w-3.5 h-3.5 text-yellow-300" />
+                  <span className="text-xs font-bold text-yellow-200">باقي للبكالوريا 2026</span>
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-5xl font-black leading-none">{daysLeft}</span>
+                  <span className="text-sm font-bold text-yellow-300 mb-1">يوم</span>
+                </div>
               </div>
             </div>
 
