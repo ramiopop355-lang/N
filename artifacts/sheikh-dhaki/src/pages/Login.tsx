@@ -123,10 +123,10 @@ export default function Login() {
               transition={{ delay: 0.2 }}
             >
               <h1 className="text-xl font-black text-foreground tracking-tight mb-0.5">
-                الأستاذ المصحح
+                أستاذ الرياضيات
               </h1>
               <p className="text-xs text-highlight/80 leading-relaxed">
-                مختبر تصحيح تمارين الباك بالمنهجية الجزائرية
+                مقيّم رياضيات الباك بالمنهجية الجزائرية 2026
               </p>
             </motion.div>
           </div>
