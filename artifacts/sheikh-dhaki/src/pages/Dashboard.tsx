@@ -21,7 +21,7 @@ type HistoryItem = {
   imagePreview?: string;
 };
 
-const SHOBAS = ["رياضيات", "علوم تجريبية", "تقني رياضي"];
+const SHOBAS = ["رياضيات", "تقني رياضي", "علوم تجريبية", "تسيير واقتصاد", "آداب وفلسفة", "لغات أجنبية"];
 const BAC_DATE = new Date(2026, 5, 15);
 
 function useDarkModeToggle() {
@@ -244,7 +244,7 @@ export default function Dashboard() {
 
           {/* Shoba */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-highlight/75 block">اختر شعبتك</label>
+            <label className="text-xs font-bold text-highlight/75 block">شعبتك في البكالوريا</label>
             <div className="relative">
               <select
                 value={selectedShoba}
