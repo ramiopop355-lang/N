@@ -175,7 +175,7 @@ export default function Login() {
                 >
                   <div className="flex items-start gap-3 bg-primary/6 border border-primary/20 rounded-2xl p-3.5">
                     <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                    <p className="text-xs text-foreground/80 leading-relaxed">
+                    <p className="text-xs text-foreground/90 leading-relaxed font-medium">
                       إذا كان حسابك مفعلاً، اضغط على الزر للدخول مباشرة.
                     </p>
                   </div>

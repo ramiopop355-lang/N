@@ -491,7 +491,7 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                   ارفع صورة التمرين وصورة محاولتك، وسيقيّم الشيخ الذكي إجابتك ويعطيك تنقيطاً تفصيلياً
                 </p>
-                <div className="flex items-center gap-4 mt-6 text-xs text-muted-foreground/60">
+                <div className="flex items-center gap-4 mt-6 text-xs text-muted-foreground/80">
                   <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> التمرين</span>
                   <span className="text-border">+</span>
                   <span className="flex items-center gap-1"><PenLine className="w-3 h-3" /> محاولتك</span>
