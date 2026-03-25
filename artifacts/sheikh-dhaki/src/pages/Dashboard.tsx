@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Trash2, CalendarDays, Upload, ChevronDown,
   Image as ImageIcon, XCircle, LogOut, MessageSquare, Moon, Sun, Copy, Check,
-  FileText, PenLine
+  FileText, PenLine, CheckCircle2, Zap, ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "wouter";
@@ -48,6 +48,26 @@ function useDarkModeToggle() {
     });
   };
   return { isDark, toggle };
+}
+
+function RIPCopy({ rip }: { rip: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(rip);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="w-full flex items-center justify-between gap-3 bg-muted border border-border hover:border-primary/40 rounded-xl px-4 py-3 transition-all group"
+    >
+      <span className="font-mono text-sm text-foreground tracking-wide select-all">{rip}</span>
+      <span className="shrink-0 text-muted-foreground group-hover:text-primary transition-colors">
+        {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+      </span>
+    </button>
+  );
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -160,14 +180,20 @@ export default function Dashboard() {
   const [trialUsed, setTrialUsed] = useState(() => {
     return parseInt(localStorage.getItem(TRIAL_KEY) || "0", 10);
   });
-  const { logout } = useAuth();
+  const [showPayment, setShowPayment] = useState(false);
+  const [payStep, setPayStep] = useState<1 | 2>(1);
+  const [isUploading, setIsUploading] = useState(false);
+  const [payUploaded, setPayUploaded] = useState(false);
+
+  const { logout, user, token: authToken, updateUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const boardRef = useRef<HTMLDivElement>(null);
   const { isDark, toggle } = useDarkModeToggle();
   const daysLeft = Math.max(0, differenceInDays(BAC_DATE, new Date()));
   const trialRemaining = Math.max(0, TRIAL_MAX - trialUsed);
-  const trialExpired = trialUsed >= TRIAL_MAX;
+  const isActivated = user?.activated === true;
+  const trialExpired = !isActivated && trialUsed >= TRIAL_MAX;
 
   useEffect(() => {
     return () => {
@@ -207,9 +233,36 @@ export default function Dashboard() {
 
   const handleLogout = () => { logout(); setLocation("/login"); };
 
+  const handleActivateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    setIsUploading(true);
+    try {
+      if (!authToken || authToken === "trial") {
+        toast({ title: "سجّل الدخول أولاً", description: "أنشئ حساباً ثم افتح نافذة التفعيل", variant: "destructive" });
+        return;
+      }
+      const res = await fetch("/api/auth/activate", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "فشل التفعيل", description: data.error ?? "خطأ غير معروف", variant: "destructive" });
+        return;
+      }
+      updateUser(data.token, data.user);
+      setPayUploaded(true);
+      toast({ title: "🎉 تم تفعيل حسابك!", description: "مبروك! يمكنك الآن الاستخدام غير المحدود." });
+    } catch {
+      toast({ title: "خطأ في الاتصال", description: "تأكد من اتصالك بالإنترنت", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (trialExpired) {
-      toast({ title: "انتهت النسخة التجريبية", description: "فعّل حسابك للاستمرار.", variant: "destructive" });
+    if (!isActivated && trialExpired) {
+      setShowPayment(true);
       return;
     }
     if (!exerciseFile) {
@@ -309,7 +362,7 @@ export default function Dashboard() {
     }
   };
 
-  const canSubmit = !!exerciseFile && !!attemptFile && !trialExpired;
+  const canSubmit = !!exerciseFile && !!attemptFile && (isActivated || !trialExpired);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -351,8 +404,25 @@ export default function Dashboard() {
             <p className="text-xs font-semibold text-muted-foreground mt-0.5">يوم</p>
           </div>
 
-          {/* Trial badge */}
-          {!trialExpired ? (
+          {/* Account Status Badge */}
+          {isActivated ? (
+            <div
+              className="rounded-2xl px-4 py-3 flex items-center gap-3"
+              style={{
+                background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 100%)",
+                border: "1.5px solid rgba(99,102,241,0.40)",
+                boxShadow: "0 2px 8px rgba(99,102,241,0.10)",
+              }}
+            >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(99,102,241,0.15)" }}>
+                <ShieldCheck className="w-4 h-4" style={{ color: "#6366f1" }} />
+              </div>
+              <div>
+                <p className="text-xs font-black leading-tight" style={{ color: "#6366f1" }}>حساب مفعّل ✨</p>
+                <p className="text-xs leading-tight text-muted-foreground">تصحيحات غير محدودة — سنة كاملة</p>
+              </div>
+            </div>
+          ) : !trialExpired ? (
             <div
               className="rounded-2xl px-4 py-3 space-y-2.5"
               style={{
@@ -362,10 +432,7 @@ export default function Dashboard() {
               }}
             >
               <div className="flex items-center gap-2">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(34,197,94,0.18)", border: "1px solid rgba(34,197,94,0.4)" }}
-                >
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(34,197,94,0.18)", border: "1px solid rgba(34,197,94,0.4)" }}>
                   <span className="text-sm">🎁</span>
                 </div>
                 <div>
@@ -374,29 +441,28 @@ export default function Dashboard() {
                     باقي <span className="font-black" style={{ color: "#16a34a" }}>{trialRemaining}</span> من {TRIAL_MAX} استخدامات
                   </p>
                 </div>
+                <button
+                  onClick={() => setShowPayment(true)}
+                  className="mr-auto text-xs font-bold px-2.5 py-1 rounded-lg transition-all hover:-translate-y-px"
+                  style={{ background: "rgba(99,102,241,0.12)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.25)" }}
+                >
+                  فعّل ↑
+                </button>
               </div>
               <div className="flex items-center gap-1.5">
                 {Array.from({ length: TRIAL_MAX }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-2.5 rounded-full overflow-hidden"
-                    style={{ background: "rgba(34,197,94,0.18)" }}
-                  >
+                  <div key={i} className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(34,197,94,0.18)" }}>
                     <div
                       className="h-full w-full rounded-full transition-all duration-300"
-                      style={
-                        i < trialUsed
-                          ? { background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.7)" }
-                          : { background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.7)" }
-                      }
+                      style={i < trialUsed
+                        ? { background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.7)" }
+                        : { background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.7)" }}
                     />
                   </div>
                 ))}
               </div>
               <p className="text-xs text-center" style={{ color: "rgba(22,163,74,0.65)" }}>
-                {trialUsed === 0
-                  ? "استمتع بـ 3 تصحيحات مجانية 🎉"
-                  : `استعملت ${trialUsed} من ${TRIAL_MAX} — باقي ${trialRemaining}`}
+                {trialUsed === 0 ? "استمتع بـ 3 تصحيحات مجانية 🎉" : `استعملت ${trialUsed} من ${TRIAL_MAX} — باقي ${trialRemaining}`}
               </p>
             </div>
           ) : (
@@ -409,10 +475,7 @@ export default function Dashboard() {
               }}
             >
               <div className="flex items-center gap-2">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.4)" }}
-                >
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.4)" }}>
                   <span className="text-sm">🔒</span>
                 </div>
                 <div>
@@ -422,25 +485,22 @@ export default function Dashboard() {
               </div>
               <div className="flex gap-1.5">
                 {Array.from({ length: TRIAL_MAX }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-2.5 rounded-full"
-                    style={{ background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.55)" }}
-                  />
+                  <div key={i} className="flex-1 h-2.5 rounded-full" style={{ background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.55)" }} />
                 ))}
               </div>
-              <button
-                onClick={() => setLocation("/login")}
-                className="w-full text-xs font-black text-white rounded-xl py-2 transition-all duration-150 hover:-translate-y-px"
-                style={{
-                  background: "#dc2626",
-                  boxShadow: "0 3px 10px rgba(220,38,38,0.35)",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#b91c1c")}
-                onMouseLeave={e => (e.currentTarget.style.background = "#dc2626")}
-              >
-                🔓 فعّل حسابك للاستمرار
-              </button>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground line-through">1000 دج</span>
+                  <span className="font-black" style={{ color: "#6366f1" }}>500 دج — عرض سنوي</span>
+                </div>
+                <button
+                  onClick={() => setShowPayment(true)}
+                  className="w-full text-xs font-black text-white rounded-xl py-2 transition-all duration-150 hover:-translate-y-px"
+                  style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)", boxShadow: "0 3px 10px rgba(99,102,241,0.35)" }}
+                >
+                  🔓 فعّل الآن بـ 500 دج
+                </button>
+              </div>
             </div>
           )}
 
@@ -520,7 +580,7 @@ export default function Dashboard() {
             {!canSubmit && (
               <p className="text-center text-xs text-muted-foreground mt-2">
                 {trialExpired
-                  ? "فعّل حسابك للاستمرار في الاستخدام"
+                  ? <button onClick={() => setShowPayment(true)} className="text-primary font-bold hover:underline">فعّل حسابك (500 دج) للاستمرار ←</button>
                   : !exerciseFile
                     ? "ارفع صورة التمرين"
                     : "ارفع صورة محاولتك"}
@@ -643,6 +703,141 @@ export default function Dashboard() {
         </div>
       </main>
       </div>
+
+      {/* Payment Modal */}
+      <AnimatePresence>
+        {showPayment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowPayment(false); setPayStep(1); setPayUploaded(false); } }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.2 }}
+              className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+            >
+              {/* Header */}
+              <div className="px-6 pt-5 pb-4 flex items-center justify-between border-b border-border">
+                <div>
+                  <h3 className="text-base font-black text-foreground">تفعيل النسخة الكاملة</h3>
+                  <p className="text-xs text-muted-foreground">عرض سنوي — وفّر 50٪</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-left">
+                    <span className="text-xs text-muted-foreground line-through block">1000 دج</span>
+                    <span className="text-lg font-black" style={{ color: "#6366f1" }}>500 دج</span>
+                  </div>
+                  <button
+                    onClick={() => { setShowPayment(false); setPayStep(1); setPayUploaded(false); }}
+                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors text-lg leading-none"
+                  >×</button>
+                </div>
+              </div>
+
+              <div className="px-6 py-5 space-y-4">
+                {/* Step indicators */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition-all ${payStep === 1 ? "bg-primary text-primary-foreground" : "bg-green-500 text-white"}`}>
+                    {payStep > 1 ? <Check className="w-3.5 h-3.5" /> : "1"}
+                  </div>
+                  <div className="flex-1 h-px bg-border" />
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black transition-all ${payStep === 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    2
+                  </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {payStep === 1 && (
+                    <motion.div key="s1" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.15 }} className="space-y-3">
+                      <div className="bg-muted/50 rounded-2xl p-3.5 space-y-2.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">المبلغ</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground line-through">1000 دج</span>
+                            <span className="text-base font-black" style={{ color: "#16a34a" }}>500 دج</span>
+                          </div>
+                        </div>
+                        <div className="h-px bg-border" />
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">الطريقة</span>
+                          <span className="text-sm font-bold text-foreground">بريدي موب</span>
+                        </div>
+                        <div className="h-px bg-border" />
+                        <div className="space-y-1.5">
+                          <span className="text-xs text-muted-foreground">رقم RIP — انقر للنسخ</span>
+                          <RIPCopy rip="00799999002789880450" />
+                        </div>
+                      </div>
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300/60 rounded-xl px-3 py-2 text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+                        ادفع <strong>500 دج</strong> عبر بريدي موب، ثم ارفع وصل الدفع في الخطوة التالية ✨
+                      </div>
+                      <button
+                        onClick={() => setPayStep(2)}
+                        className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-2.5 transition-all shadow-sm hover:-translate-y-px"
+                      >
+                        دفعت؟ ارفع الوصل ←
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {payStep === 2 && (
+                    <motion.div key="s2" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.15 }} className="space-y-3">
+                      {payUploaded ? (
+                        <div className="flex flex-col items-center gap-3 py-6">
+                          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "rgba(34,197,94,0.12)", border: "2px solid rgba(34,197,94,0.4)" }}>
+                            <CheckCircle2 className="w-7 h-7" style={{ color: "#22c55e" }} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-base font-black text-foreground mb-0.5">🎉 تم تفعيل حسابك!</p>
+                            <p className="text-xs text-muted-foreground">يمكنك الآن الاستخدام غير المحدود</p>
+                          </div>
+                          <button
+                            onClick={() => { setShowPayment(false); setPayStep(1); setPayUploaded(false); }}
+                            className="w-full flex items-center justify-center gap-2 font-bold text-sm rounded-xl py-2.5 text-white transition-all hover:-translate-y-px"
+                            style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 4px 12px rgba(34,197,94,0.3)" }}
+                          >
+                            <Zap className="w-4 h-4" /> ابدأ الاستخدام الآن
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <label className={`flex flex-col items-center gap-2.5 border-2 border-dashed rounded-2xl p-5 cursor-pointer transition-all ${isUploading ? "border-primary/40 bg-primary/5" : "border-border hover:border-primary/50 hover:bg-primary/4"}`}>
+                            <input type="file" accept="image/*" className="hidden" onChange={handleActivateUpload} disabled={isUploading} />
+                            {isUploading ? (
+                              <>
+                                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                <span className="text-sm font-semibold text-primary">جاري التفعيل...</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-10 h-10 rounded-full bg-primary/8 border border-primary/20 flex items-center justify-center">
+                                  <Upload className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-sm font-semibold text-foreground">اختر صورة الوصل</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG · التفعيل فوري</p>
+                                </div>
+                              </>
+                            )}
+                          </label>
+                          <button onClick={() => setPayStep(1)} className="w-full text-xs text-muted-foreground hover:text-foreground font-medium transition-colors">
+                            ← رجوع للخطوة السابقة
+                          </button>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer */}
       <footer className="border-t border-border bg-card py-2">
