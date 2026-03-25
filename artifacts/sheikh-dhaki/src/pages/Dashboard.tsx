@@ -395,8 +395,8 @@ export default function Dashboard() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
-                  <span className="text-yellow-300">قيّم محاولتي</span>
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
+                  <span className="text-yellow-300 text-base font-black tracking-wide">قيّم محاولتي</span>
                 </>
               )}
             </button>
