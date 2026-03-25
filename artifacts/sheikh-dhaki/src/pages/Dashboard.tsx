@@ -353,40 +353,61 @@ export default function Dashboard() {
 
           {/* Trial badge */}
           {!trialExpired ? (
-            <div className="flex items-center justify-between bg-green-500/10 border border-green-500/25 rounded-xl px-3.5 py-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-base">🎁</span>
-                <div>
-                  <p className="text-xs font-black text-green-700 dark:text-green-400">نسخة تجريبية مجانية</p>
-                  <p className="text-xs text-green-600/70 dark:text-green-500/60">
-                    باقي <span className="font-black">{trialRemaining}</span> من {TRIAL_MAX} استخدامات
-                  </p>
+            <div className="rounded-2xl border-2 border-green-500/40 bg-gradient-to-br from-green-500/15 to-emerald-500/8 px-4 py-3 space-y-2.5 shadow-sm shadow-green-500/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center">
+                    <span className="text-sm">🎁</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-green-600 dark:text-green-400 leading-tight">نسخة تجريبية مجانية</p>
+                    <p className="text-xs text-green-600/65 dark:text-green-500/55 leading-tight">
+                      باقي <span className="font-black text-green-600 dark:text-green-400">{trialRemaining}</span> من {TRIAL_MAX}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="flex items-center gap-1.5">
                 {Array.from({ length: TRIAL_MAX }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                      i < trialUsed
-                        ? "bg-red-400/70"
-                        : "bg-green-400"
-                    }`}
-                  />
+                  <div key={i} className="flex-1 h-2 rounded-full overflow-hidden bg-green-200/50 dark:bg-green-900/40">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        i < trialUsed
+                          ? "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]"
+                          : "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]"
+                      }`}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
                 ))}
               </div>
+              <p className="text-xs text-green-600/55 dark:text-green-500/45 text-center">
+                {trialUsed === 0
+                  ? "استمتع بـ 3 تصحيحات مجانية 🎉"
+                  : `استعملت ${trialUsed} من ${TRIAL_MAX} — باقي ${trialRemaining}`}
+              </p>
             </div>
           ) : (
-            <div className="bg-red-500/10 border border-red-400/30 rounded-xl px-3.5 py-3 space-y-1.5">
-              <p className="text-xs font-black text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                <span>🔒</span> انتهت النسخة التجريبية
-              </p>
-              <p className="text-xs text-red-500/70">استعملت الـ {TRIAL_MAX} استخدامات المجانية.</p>
+            <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-br from-red-500/15 to-rose-500/8 px-4 py-3.5 space-y-2.5 shadow-sm shadow-red-500/15">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0">
+                  <span className="text-sm">🔒</span>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-red-600 dark:text-red-400 leading-tight">انتهت النسخة التجريبية</p>
+                  <p className="text-xs text-red-500/70 dark:text-red-400/55 leading-tight">استعملت كل الـ {TRIAL_MAX} تصحيحات المجانية</p>
+                </div>
+              </div>
+              <div className="flex gap-1.5">
+                {Array.from({ length: TRIAL_MAX }).map((_, i) => (
+                  <div key={i} className="flex-1 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
+                ))}
+              </div>
               <button
                 onClick={() => setLocation("/login")}
-                className="w-full text-xs font-bold bg-red-500 hover:bg-red-600 text-white rounded-lg py-1.5 transition-colors mt-1"
+                className="w-full text-xs font-black bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-xl py-2 transition-all duration-150 shadow-md shadow-red-500/30 hover:shadow-red-500/50 hover:-translate-y-px"
               >
-                فعّل حسابك للاستمرار ←
+                🔓 فعّل حسابك للاستمرار
               </button>
             </div>
           )}
