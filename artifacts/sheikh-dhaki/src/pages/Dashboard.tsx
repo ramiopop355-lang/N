@@ -21,7 +21,7 @@ type HistoryItem = {
   imagePreview?: string;
 };
 
-const SHOBAS = ["علوم تجريبية", "رياضيات", "تقني رياضي", "لغات", "آداب", "تسيير"];
+const SHOBAS = ["علوم تجريبية", "رياضيات"];
 const BAC_DATE = new Date(2026, 5, 15);
 
 function useDarkModeToggle() {
