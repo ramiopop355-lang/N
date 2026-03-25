@@ -371,13 +371,17 @@ export default function Dashboard() {
           />
 
           {/* Notes */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-highlight/75 block">ملاحظة (اختياري)</label>
+          <div className="rounded-2xl border border-amber-300/60 dark:border-amber-500/30 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 dark:from-amber-900/15 dark:to-yellow-900/10 p-3.5 space-y-2 shadow-sm shadow-amber-100/60 dark:shadow-amber-900/10">
+            <div className="flex items-center gap-2">
+              <span className="text-base">💬</span>
+              <label className="text-xs font-black text-amber-700 dark:text-amber-400">قل للأستاذ</label>
+              <span className="text-xs text-amber-500/70 dark:text-amber-500/50 mr-auto">اختياري</span>
+            </div>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="مثلاً: ما فهمتش السؤال الثاني..."
-              className="w-full bg-background border border-border hover:border-primary/40 focus:border-primary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none min-h-[60px]"
+              className="w-full bg-white/70 dark:bg-black/20 border border-amber-200/80 dark:border-amber-700/30 focus:border-amber-400 dark:focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-300/30 dark:focus:ring-amber-500/20 transition-all resize-none min-h-[60px] placeholder:text-amber-400/60 dark:placeholder:text-amber-600/50"
             />
           </div>
 
