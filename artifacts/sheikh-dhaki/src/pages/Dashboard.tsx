@@ -301,7 +301,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-black text-foreground">أستاذ الرياضيات</h2>
-              <p className="text-xs text-highlight/75">مقيّم الرياضيات — بكالوريا 2026</p>
+              <p className="text-xs text-highlight/75">مصحح الرياضيات — بكالوريا 2026</p>
             </div>
             <div className="flex items-center gap-1">
               <button

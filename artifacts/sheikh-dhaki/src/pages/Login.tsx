@@ -126,7 +126,7 @@ export default function Login() {
                 أستاذ الرياضيات
               </h1>
               <p className="text-xs text-highlight/80 leading-relaxed">
-                مقيّم رياضيات الباك بالمنهجية الجزائرية 2026
+                مصحح رياضيات الباك بالمنهجية الجزائرية 2026
               </p>
             </motion.div>
           </div>
