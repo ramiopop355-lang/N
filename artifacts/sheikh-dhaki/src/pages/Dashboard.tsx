@@ -204,6 +204,18 @@ export default function Dashboard() {
     };
   }, [exercisePreviewUrl, attemptPreviewUrl]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const text  = params.get("share_text");
+    const title = params.get("share_title");
+    const url   = params.get("share_url");
+    const combined = [title, text, url].filter(Boolean).join("\n").trim();
+    if (combined) {
+      setNotes(combined);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   const setExercise = (f: File) => {
     if (exercisePreviewUrl) URL.revokeObjectURL(exercisePreviewUrl);
     setExerciseFile(f);
