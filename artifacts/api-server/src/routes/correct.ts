@@ -4,6 +4,15 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    ),
+  ]);
+}
+
 // ── نظام أولوية المفاتيح: المدفوع أولاً، ثم المجانية ──────────────
 function loadPaidKey(): string | null {
   return process.env["GEMINI_API_KEY"] ?? null;
@@ -20,6 +29,12 @@ function loadFreeKeys(): string[] {
 
 const disabledKeys = new Set<string>();
 let freeKeyIndex = 0;
+
+// إعادة تفعيل المفاتيح المجانية كل 60 دقيقة (الحصة اليومية تتجدد)
+setInterval(() => {
+  disabledKeys.clear();
+  freeKeyIndex = 0;
+}, 60 * 60 * 1000).unref();
 
 function getNextFreeKey(freeKeys: string[]): string | null {
   const active = freeKeys.filter((k) => !disabledKeys.has(k));
@@ -214,7 +229,7 @@ ${notes ? `ملاحظة الطالب: ${notes}` : ""}
 
 قيّم محاولة الطالب وفق الهيكل البيداغوجي الإلزامي ومنهاج البكالوريا الجزائرية 2026.`;
 
-      const result = await callWithKeyRotation((apiKey) => {
+      const result = await withTimeout(callWithKeyRotation((apiKey) => {
         const genai = new GoogleGenerativeAI(apiKey);
         const model = genai.getGenerativeModel({
           model: "gemini-2.5-flash",
@@ -231,7 +246,7 @@ ${notes ? `ملاحظة الطالب: ${notes}` : ""}
           { inlineData: { data: attemptBase64, mimeType: attemptMime } },
           userMessage,
         ]);
-      });
+      }), 90_000);
 
       for await (const chunk of result.stream) {
         const text = chunk.text();
