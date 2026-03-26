@@ -104,7 +104,7 @@ function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, on
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const f = e.dataTransfer.files[0];
-    if (f && (f.type === "image/jpeg" || f.type === "image/png" || f.type === "image/jpg")) {
+    if (f && f.type.startsWith("image/")) {
       onFileChange(f);
     }
   }, [onFileChange]);
@@ -118,7 +118,7 @@ function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, on
       <input
         type="file"
         ref={inputRef}
-        accept="image/jpeg,image/png,image/jpg"
+        accept="image/*"
         className="hidden"
         onChange={(e) => { if (e.target.files?.[0]) onFileChange(e.target.files[0]); }}
       />
@@ -134,7 +134,7 @@ function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, on
             <Upload className="w-4 h-4 text-primary" />
           </div>
           <span className="text-xs font-semibold text-foreground">اختر صورة أو اسحبها</span>
-          <span className="text-xs text-muted-foreground">{hint}</span>
+          <span className="text-xs text-muted-foreground">{hint} · JPG, PNG, WEBP</span>
         </button>
       ) : (
         <div className="relative rounded-xl overflow-hidden border border-border group">
