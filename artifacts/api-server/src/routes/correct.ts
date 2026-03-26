@@ -2,6 +2,37 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  baseDelayMs = 1500
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastErr = err;
+      const isRetryable =
+        err instanceof Error &&
+        (err.message.includes("503") ||
+          err.message.includes("429") ||
+          err.message.includes("500") ||
+          err.message.toLowerCase().includes("overloaded") ||
+          err.message.toLowerCase().includes("unavailable") ||
+          err.message.toLowerCase().includes("network") ||
+          err.message.toLowerCase().includes("timeout"));
+      if (!isRetryable || attempt === maxAttempts) break;
+      const delay = baseDelayMs * 2 ** (attempt - 1);
+      console.warn(`Gemini attempt ${attempt} failed, retrying in ${delay}ms…`, err);
+      await sleep(delay);
+    }
+  }
+  throw lastErr;
+}
+
 const router: IRouter = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -107,21 +138,23 @@ ${notes ? `ملاحظة الطالب: ${notes}` : ""}
         },
       });
 
-      const result = await model.generateContentStream([
-        {
-          inlineData: {
-            data: exerciseBase64,
-            mimeType: exerciseMime,
+      const result = await withRetry(() =>
+        model.generateContentStream([
+          {
+            inlineData: {
+              data: exerciseBase64,
+              mimeType: exerciseMime,
+            },
           },
-        },
-        {
-          inlineData: {
-            data: attemptBase64,
-            mimeType: attemptMime,
+          {
+            inlineData: {
+              data: attemptBase64,
+              mimeType: attemptMime,
+            },
           },
-        },
-        userMessage,
-      ]);
+          userMessage,
+        ])
+      );
 
       for await (const chunk of result.stream) {
         const text = chunk.text();
