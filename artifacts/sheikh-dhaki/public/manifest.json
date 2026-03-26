@@ -6,7 +6,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#0f0f1a",
   "theme_color": "#6366f1",
@@ -39,13 +39,6 @@
   ],
 
   "screenshots": [
-    {
-      "src": "/opengraph.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "سِيغْمَا على سطح المكتب"
-    },
     {
       "src": "/screenshot-narrow.jpg",
       "sizes": "390x844",
