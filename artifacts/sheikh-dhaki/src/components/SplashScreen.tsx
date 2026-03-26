@@ -4,8 +4,8 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
   const [out, setOut] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setOut(true), 1200);
-    const t2 = setTimeout(onDone, 1600);
+    const t1 = setTimeout(() => setOut(true), 1600);
+    const t2 = setTimeout(onDone, 2000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [onDone]);
 
@@ -103,7 +103,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
           height: "100%",
           background: "linear-gradient(90deg, #6366f1, #a78bfa)",
           borderRadius: 99,
-          animation: "bar-fill 1s ease 0.9s both",
+          animation: "bar-fill 1.4s ease 0.9s both",
         }} />
       </div>
     </div>
