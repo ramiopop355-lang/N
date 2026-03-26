@@ -70,6 +70,13 @@
 
   "privacy_policy_url": "https://sigmaaidzbac.replit.app/privacy",
 
+  "protocol_handlers": [
+    {
+      "protocol": "web+sigma",
+      "url": "/?sigma_action=%s"
+    }
+  ],
+
   "file_handlers": [
     {
       "action": "/",

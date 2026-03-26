@@ -297,6 +297,21 @@ export default function Dashboard() {
       setNotes(combined);
       window.history.replaceState({}, "", window.location.pathname);
     }
+
+    // web+sigma:// protocol handler
+    const sigmaAction = params.get("sigma_action");
+    if (sigmaAction) {
+      try {
+        const actionUrl = new URL(sigmaAction);
+        const host = actionUrl.hostname; // e.g. "correct", "note"
+        const query = new URLSearchParams(actionUrl.search);
+        if (host === "note" || host === "correct") {
+          const text = query.get("text") ?? actionUrl.pathname.replace(/^\//, "");
+          if (text) setNotes(decodeURIComponent(text));
+        }
+      } catch {}
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const setExercise = (f: File) => {
