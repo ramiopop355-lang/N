@@ -229,11 +229,31 @@ export default function Dashboard() {
           userVisibleOnly: true,
           applicationServerKey: key,
         });
-        await fetch(`${base}api/push/subscribe`, {
+
+        const payload = { username: user!.username, subscription: sub };
+
+        const postRes = await fetch(`${base}api/push/subscribe`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: user!.username, subscription: sub }),
-        });
+          body: JSON.stringify(payload),
+        }).catch(() => null);
+
+        if (!postRes?.ok) {
+          // فشل الاتصال — احفظ البيانات وسجّل Background Sync
+          const pending = await caches.open("sigma-pending");
+          await pending.put(
+            "/push-payload",
+            new Response(JSON.stringify(payload), { headers: { "Content-Type": "application/json" } })
+          );
+          if ("sync" in reg) {
+            await (reg as unknown as { sync: { register: (tag: string) => Promise<void> } })
+              .sync.register("sigma-push-retry");
+          }
+        } else {
+          // نجح الاتصال — احذف أي بيانات معلّقة سابقة
+          const pending = await caches.open("sigma-pending");
+          await pending.delete("/push-payload");
+        }
 
         // Periodic Background Sync
         if ("periodicSync" in reg) {

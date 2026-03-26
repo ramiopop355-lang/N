@@ -1,4 +1,5 @@
-const CACHE = "sigma-v6";
+const CACHE = "sigma-v7";
+const PENDING_CACHE = "sigma-pending";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE = [
@@ -142,6 +143,28 @@ self.addEventListener("notificationclick", (e) => {
       else clients.openWindow(url);
     })
   );
+});
+
+// ─── Background Sync — إعادة محاولة اشتراك الإشعارات عند استعادة الاتصال ────
+self.addEventListener("sync", (e) => {
+  if (e.tag === "sigma-push-retry") {
+    e.waitUntil(
+      (async () => {
+        try {
+          const pending = await caches.open(PENDING_CACHE);
+          const stored  = await pending.match("/push-payload");
+          if (!stored) return;
+          const payload = await stored.json();
+          const res = await fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) await pending.delete("/push-payload");
+        } catch {}
+      })()
+    );
+  }
 });
 
 // ─── Periodic Background Sync ───────────────────────────────────────────────
