@@ -379,7 +379,7 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-black text-foreground">أستاذ الرياضيات</h2>
+              <h2 className="text-base font-black text-foreground">فَصْل</h2>
               <p className="text-xs text-primary/70">مصحح الرياضيات — بكالوريا 2026</p>
             </div>
             <div className="flex items-center gap-1">
@@ -622,7 +622,7 @@ export default function Dashboard() {
               >
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <span className="text-xs font-semibold text-primary">أستاذ الرياضيات يقيّم محاولتك...</span>
+                  <span className="text-xs font-semibold text-primary">فَصْل يقيّم محاولتك...</span>
                   <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-bold px-2.5 py-0.5 rounded-full mr-auto">
                     <Sparkles className="w-3 h-3" />
                     {selectedShoba}
@@ -643,7 +643,7 @@ export default function Dashboard() {
               </div>
               <h3 className="text-base font-bold text-foreground mb-2">السبورة فارغة</h3>
               <p className="text-sm text-muted-foreground max-w-xs">
-                ارفع صورة التمرين وصورة محاولتك وسيقيّم أستاذ الرياضيات إجابتك فوراً
+                ارفع صورة التمرين وصورة محاولتك وسيقيّم فَصْل إجابتك فوراً
               </p>
             </div>
           ) : (

@@ -228,7 +228,7 @@ export default function Login() {
               <AppLogo size={56} />
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <h1 className="text-xl font-black text-foreground tracking-tight mb-0.5">أستاذ الرياضيات</h1>
+              <h1 className="text-xl font-black text-foreground tracking-tight mb-0.5">فَصْل</h1>
               <p className="text-xs text-primary/70">مصحح رياضيات الباك بالمنهجية الجزائرية 2026</p>
             </motion.div>
           </div>
@@ -411,7 +411,7 @@ export default function Login() {
 
           {/* Footer */}
           <div className="border-t border-border px-6 py-3 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">© منصة حل عقدة الباك 2026</p>
+            <p className="text-xs text-muted-foreground">© فَصْل 2026</p>
             <button
               onClick={toggle}
               className="w-7 h-7 rounded-full border border-border bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border/80 transition-all"
