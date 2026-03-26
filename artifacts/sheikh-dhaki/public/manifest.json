@@ -30,6 +30,7 @@
       "purpose": "any"
     }
   ],
+  "prefer_related_applications": false,
   "categories": ["education", "productivity"],
   "screenshots": [
     {
