@@ -271,6 +271,23 @@ export default function Dashboard() {
   }, [user?.username]);
 
   useEffect(() => {
+    if (!("launchQueue" in window)) return;
+    (window as unknown as {
+      launchQueue: { setConsumer: (cb: (p: { files: { getFile: () => Promise<File> }[] }) => void) => void }
+    }).launchQueue.setConsumer(async (launchParams) => {
+      if (!launchParams.files.length) return;
+      try {
+        const first = await launchParams.files[0].getFile();
+        setExercise(first);
+        if (launchParams.files.length >= 2) {
+          const second = await launchParams.files[1].getFile();
+          setAttempt(second);
+        }
+      } catch {}
+    });
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const text  = params.get("share_text");
     const title = params.get("share_title");
