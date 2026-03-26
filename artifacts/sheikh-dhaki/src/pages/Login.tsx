@@ -420,7 +420,12 @@ export default function Login() {
 
           {/* Footer */}
           <div className="border-t border-border px-6 py-3 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">© سِيغْمَا 2026</p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                <span className="text-xs font-black text-white" style={{ fontFamily: "serif" }}>Σ</span>
+              </div>
+              <p className="text-xs text-muted-foreground">سِيغْمَا © 2026 — جميع الحقوق محفوظة</p>
+            </div>
             <button
               onClick={toggle}
               className="w-7 h-7 rounded-full border border-border bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border/80 transition-all"

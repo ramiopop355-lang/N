@@ -854,12 +854,19 @@ export default function Dashboard() {
 
       {/* Footer */}
       <footer className="border-t border-border bg-card py-2">
-        <div className="flex items-center justify-center px-4">
+        <div className="flex items-center justify-center gap-3 px-4 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+              <span className="text-xs font-black text-white" style={{ fontFamily: "serif" }}>Σ</span>
+            </div>
+            <span className="text-xs text-muted-foreground">سِيغْمَا © 2026 — جميع الحقوق محفوظة</span>
+          </div>
+          <span className="text-muted-foreground/40 text-xs hidden sm:inline">|</span>
           <a
             href="/privacy"
             className="text-xs text-muted-foreground hover:text-primary transition-colors"
           >
-            سياسة الخصوصية (Privacy Policy)
+            سياسة الخصوصية
           </a>
         </div>
       </footer>
