@@ -2,14 +2,21 @@
   "id": "sigma-bac-dz",
   "name": "سِيغْمَا — مصحح رياضيات البكالوريا",
   "short_name": "سِيغْمَا Σ",
-  "description": "مصحح رياضيات البكالوريا الجزائرية بالذكاء الاصطناعي",
+  "description": "مصحح رياضيات البكالوريا الجزائرية بالذكاء الاصطناعي — منهجية وزارة التربية 2026",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
   "background_color": "#0f0f1a",
   "theme_color": "#6366f1",
   "lang": "ar",
   "dir": "rtl",
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "categories": ["education", "productivity"],
+
   "icons": [
     {
       "src": "/favicon.png",
@@ -30,14 +37,35 @@
       "purpose": "any"
     }
   ],
-  "prefer_related_applications": false,
-  "categories": ["education", "productivity"],
+
   "screenshots": [
     {
       "src": "/opengraph.jpg",
       "sizes": "1280x720",
       "type": "image/jpeg",
-      "label": "سِيغْمَا — مصحح البكالوريا"
+      "form_factor": "wide",
+      "label": "سِيغْمَا على سطح المكتب"
+    },
+    {
+      "src": "/screenshot-narrow.jpg",
+      "sizes": "390x844",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "سِيغْمَا على الجوال"
     }
-  ]
+  ],
+
+  "shortcuts": [
+    {
+      "name": "تصحيح جديد",
+      "short_name": "تصحيح",
+      "description": "ابدأ تمريناً جديداً للتصحيح",
+      "url": "/",
+      "icons": [{ "src": "/favicon.png", "sizes": "256x256" }]
+    }
+  ],
+
+  "launch_handler": {
+    "client_mode": ["focus-existing", "auto"]
+  }
 }

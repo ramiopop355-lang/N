@@ -1,4 +1,4 @@
-const CACHE = "sigma-v3";
+const CACHE = "sigma-v4";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE = [
@@ -9,6 +9,8 @@ const PRECACHE = [
   "/favicon.svg",
   "/favicon.png",
   "/icon-512.png",
+  "/screenshot-narrow.jpg",
+  "/opengraph.jpg",
 ];
 
 // ─── Install: precache الأصول الأساسية ──────────────────────────────────────
