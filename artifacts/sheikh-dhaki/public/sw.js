@@ -1,4 +1,4 @@
-const CACHE = "sigma-v4";
+const CACHE = "sigma-v5";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE = [
@@ -108,5 +108,47 @@ self.addEventListener("fetch", (e) => {
         })
     );
     return;
+  }
+});
+
+// ─── Push Notifications ─────────────────────────────────────────────────────
+self.addEventListener("push", (e) => {
+  if (!e.data) return;
+  let data = { title: "سِيغْمَا", body: "لديك إشعار جديد", url: "/" };
+  try { data = { ...data, ...JSON.parse(e.data.text()) }; } catch {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/favicon.png",
+      badge: "/favicon.png",
+      dir: "rtl",
+      lang: "ar",
+      tag: "sigma-notif",
+      renotify: true,
+      data: { url: data.url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url ?? "/";
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const existing = list.find((c) => c.url.includes(self.location.origin));
+      if (existing) { existing.focus(); existing.navigate(url); }
+      else clients.openWindow(url);
+    })
+  );
+});
+
+// ─── Periodic Background Sync ───────────────────────────────────────────────
+self.addEventListener("periodicsync", (e) => {
+  if (e.tag === "sigma-keepalive") {
+    e.waitUntil(
+      caches.open(CACHE).then((c) =>
+        fetch("/").then((r) => { if (r.ok) c.put("/", r); }).catch(() => {})
+      )
+    );
   }
 });

@@ -205,6 +205,52 @@ export default function Dashboard() {
   }, [exercisePreviewUrl, attemptPreviewUrl]);
 
   useEffect(() => {
+    if (!user?.username) return;
+    const isAndroid = /android/i.test(navigator.userAgent);
+    if (!isAndroid || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+    const base = import.meta.env.BASE_URL || "/";
+
+    async function setupPush() {
+      try {
+        const keyRes = await fetch(`${base}api/push/vapid-public-key`);
+        if (!keyRes.ok) return;
+        const { key } = await keyRes.json() as { key: string };
+        if (!key) return;
+
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+
+        const reg = await navigator.serviceWorker.ready;
+
+        // اشتراك Push
+        const existing = await reg.pushManager.getSubscription();
+        const sub = existing ?? await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        });
+        await fetch(`${base}api/push/subscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: user!.username, subscription: sub }),
+        });
+
+        // Periodic Background Sync
+        if ("periodicSync" in reg) {
+          const status = await (navigator.permissions as unknown as { query: (d: object) => Promise<{ state: string }> })
+            .query({ name: "periodic-background-sync" as PermissionName });
+          if (status.state === "granted") {
+            await (reg as unknown as { periodicSync: { register: (tag: string, opts: object) => Promise<void> } })
+              .periodicSync.register("sigma-keepalive", { minInterval: 24 * 60 * 60 * 1000 });
+          }
+        }
+      } catch {}
+    }
+
+    setupPush();
+  }, [user?.username]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const text  = params.get("share_text");
     const title = params.get("share_title");
