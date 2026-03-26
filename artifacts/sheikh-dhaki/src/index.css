@@ -115,3 +115,12 @@ input, textarea {
   -ms-user-select: text;
   user-select: text;
 }
+
+/* إخفاء زر Progressier */
+[id^="progressier"],
+[class^="progressier"],
+[data-progressier],
+#progressier-container,
+#pwa-install-button {
+  display: none !important;
+}
