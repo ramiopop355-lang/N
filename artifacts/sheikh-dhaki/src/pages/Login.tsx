@@ -52,10 +52,10 @@ function RIPCopyField({ rip }: { rip: string }) {
 }
 
 function InputField({
-  icon: Icon, label, type = "text", value, onChange, placeholder, disabled, showToggle,
+  icon: Icon, label, type = "text", value, onChange, placeholder, disabled, showToggle, autoComplete,
 }: {
   icon: React.ElementType; label: string; type?: string; value: string;
-  onChange: (v: string) => void; placeholder?: string; disabled?: boolean; showToggle?: boolean;
+  onChange: (v: string) => void; placeholder?: string; disabled?: boolean; showToggle?: boolean; autoComplete?: string;
 }) {
   const [visible, setVisible] = useState(false);
   const inputType = showToggle ? (visible ? "text" : "password") : type;
@@ -72,6 +72,7 @@ function InputField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
+          autoComplete={autoComplete}
           className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all disabled:opacity-50"
           dir="rtl"
         />
@@ -271,22 +272,23 @@ export default function Login() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.18 }}
-                  className="space-y-3"
                 >
-                  <InputField icon={User} label="اسم المستخدم" value={loginUsername} onChange={setLoginUsername} placeholder="أدخل اسم المستخدم" disabled={loading} />
-                  <InputField icon={Lock} label="كلمة السر" value={loginPassword} onChange={setLoginPassword} placeholder="أدخل كلمة السر" disabled={loading} showToggle />
-                  <button
-                    onClick={handleLogin}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-2.5 transition-all duration-200 shadow-sm shadow-primary/20 hover:-translate-y-px active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <LogIn className="w-4 h-4" />}
-                    {loading ? "جاري الدخول..." : "دخول"}
-                  </button>
-                  <p className="text-center text-xs text-muted-foreground pb-1">
-                    ليس لديك حساب؟{" "}
-                    <button onClick={() => setTab("register")} className="text-primary font-bold hover:underline">سجّل الآن</button>
-                  </p>
+                  <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+                    <InputField icon={User} label="اسم المستخدم" value={loginUsername} onChange={setLoginUsername} placeholder="أدخل اسم المستخدم" disabled={loading} autoComplete="username" />
+                    <InputField icon={Lock} label="كلمة السر" value={loginPassword} onChange={setLoginPassword} placeholder="أدخل كلمة السر" disabled={loading} showToggle autoComplete="current-password" />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-2.5 transition-all duration-200 shadow-sm shadow-primary/20 hover:-translate-y-px active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <LogIn className="w-4 h-4" />}
+                      {loading ? "جاري الدخول..." : "دخول"}
+                    </button>
+                    <p className="text-center text-xs text-muted-foreground pb-1">
+                      ليس لديك حساب؟{" "}
+                      <button type="button" onClick={() => setTab("register")} className="text-primary font-bold hover:underline">سجّل الآن</button>
+                    </p>
+                  </form>
                 </motion.div>
               )}
 
@@ -297,24 +299,25 @@ export default function Login() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.18 }}
-                  className="space-y-3"
                 >
-                  <InputField icon={User} label="اسم المستخدم" value={regUsername} onChange={setRegUsername} placeholder="اختر اسم مستخدم (3 أحرف +)" disabled={loading} />
-                  <InputField icon={Phone} label="رقم الهاتف" value={regPhone} onChange={setRegPhone} placeholder="05XXXXXXXX" disabled={loading} />
-                  <InputField icon={Lock} label="كلمة السر" value={regPassword} onChange={setRegPassword} placeholder="6 أحرف على الأقل" disabled={loading} showToggle />
-                  <InputField icon={Lock} label="تأكيد كلمة السر" value={regConfirm} onChange={setRegConfirm} placeholder="أعد إدخال كلمة السر" disabled={loading} showToggle />
-                  <button
-                    onClick={handleRegister}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-2.5 transition-all duration-200 shadow-sm shadow-primary/20 hover:-translate-y-px active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                    {loading ? "جاري التسجيل..." : "إنشاء الحساب"}
-                  </button>
-                  <p className="text-center text-xs text-muted-foreground pb-1">
-                    لديك حساب؟{" "}
-                    <button onClick={() => setTab("login")} className="text-primary font-bold hover:underline">ادخل هنا</button>
-                  </p>
+                  <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); handleRegister(); }}>
+                    <InputField icon={User} label="اسم المستخدم" value={regUsername} onChange={setRegUsername} placeholder="اختر اسم مستخدم (3 أحرف +)" disabled={loading} autoComplete="username" />
+                    <InputField icon={Phone} label="رقم الهاتف" value={regPhone} onChange={setRegPhone} placeholder="05XXXXXXXX" disabled={loading} autoComplete="tel" />
+                    <InputField icon={Lock} label="كلمة السر" value={regPassword} onChange={setRegPassword} placeholder="6 أحرف على الأقل" disabled={loading} showToggle autoComplete="new-password" />
+                    <InputField icon={Lock} label="تأكيد كلمة السر" value={regConfirm} onChange={setRegConfirm} placeholder="أعد إدخال كلمة السر" disabled={loading} showToggle autoComplete="new-password" />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl py-2.5 transition-all duration-200 shadow-sm shadow-primary/20 hover:-translate-y-px active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {loading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                      {loading ? "جاري التسجيل..." : "إنشاء الحساب"}
+                    </button>
+                    <p className="text-center text-xs text-muted-foreground pb-1">
+                      لديك حساب؟{" "}
+                      <button type="button" onClick={() => setTab("login")} className="text-primary font-bold hover:underline">ادخل هنا</button>
+                    </p>
+                  </form>
                 </motion.div>
               )}
             </AnimatePresence>
