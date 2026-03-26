@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface AuthUser {
   username: string;
@@ -18,34 +18,46 @@ interface AuthContextType {
 const AUTH_KEY = "ustad-auth-token";
 const USER_KEY = "ustad-auth-user";
 
+const storage = {
+  get: (key: string): string | null => {
+    try { return localStorage.getItem(key); } catch { return null; }
+  },
+  set: (key: string, value: string): void => {
+    try { localStorage.setItem(key, value); } catch { /* unavailable */ }
+  },
+  remove: (key: string): void => {
+    try { localStorage.removeItem(key); } catch { /* unavailable */ }
+  },
+};
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(AUTH_KEY));
+  const [token, setToken] = useState<string | null>(() => storage.get(AUTH_KEY));
   const [user, setUser] = useState<AuthUser | null>(() => {
-    const stored = localStorage.getItem(USER_KEY);
-    return stored ? JSON.parse(stored) : null;
+    const stored = storage.get(USER_KEY);
+    try { return stored ? JSON.parse(stored) : null; } catch { return null; }
   });
 
   const isLoggedIn = !!token && !!user;
 
   const login = (newToken: string, newUser: AuthUser) => {
-    localStorage.setItem(AUTH_KEY, newToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    storage.set(AUTH_KEY, newToken);
+    storage.set(USER_KEY, JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
-    localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(USER_KEY);
+    storage.remove(AUTH_KEY);
+    storage.remove(USER_KEY);
     setToken(null);
     setUser(null);
   };
 
   const updateUser = (newToken: string, newUser: AuthUser) => {
-    localStorage.setItem(AUTH_KEY, newToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    storage.set(AUTH_KEY, newToken);
+    storage.set(USER_KEY, JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
   };

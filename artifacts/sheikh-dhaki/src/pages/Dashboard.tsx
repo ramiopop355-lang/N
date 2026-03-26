@@ -28,11 +28,16 @@ const BAC_DATE = new Date(2026, 5, 7);
 const TRIAL_MAX = 3;
 const TRIAL_KEY = "ustad-trial-used";
 
+const safeStorage = {
+  get: (key: string) => { try { return localStorage.getItem(key); } catch { return null; } },
+  set: (key: string, val: string) => { try { localStorage.setItem(key, val); } catch { /* noop */ } },
+};
+
 function useDarkModeToggle() {
   const getInitial = () => {
-    const stored = localStorage.getItem("dhaki-dark");
+    const stored = safeStorage.get("dhaki-dark");
     if (stored !== null) return stored === "true";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    try { return window.matchMedia("(prefers-color-scheme: dark)").matches; } catch { return false; }
   };
   const [isDark, setIsDark] = useState(() => {
     const d = getInitial();
@@ -43,7 +48,7 @@ function useDarkModeToggle() {
     setIsDark((prev) => {
       const next = !prev;
       document.documentElement.classList.toggle("dark", next);
-      localStorage.setItem("dhaki-dark", String(next));
+      safeStorage.set("dhaki-dark", String(next));
       return next;
     });
   };
@@ -178,7 +183,7 @@ export default function Dashboard() {
   const [isPending, setIsPending] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [trialUsed, setTrialUsed] = useState(() => {
-    return parseInt(localStorage.getItem(TRIAL_KEY) || "0", 10);
+    return parseInt(safeStorage.get(TRIAL_KEY) || "0", 10);
   });
   const [showPayment, setShowPayment] = useState(false);
   const [payStep, setPayStep] = useState<1 | 2>(1);
@@ -345,7 +350,7 @@ export default function Dashboard() {
             if (!isActivated) {
               const newUsed = trialUsed + 1;
               setTrialUsed(newUsed);
-              localStorage.setItem(TRIAL_KEY, String(newUsed));
+              safeStorage.set(TRIAL_KEY, String(newUsed));
               const left = TRIAL_MAX - newUsed;
               toast({
                 title: "✅ اكتمل التصحيح!",
