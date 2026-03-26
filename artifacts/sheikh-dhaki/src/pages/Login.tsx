@@ -8,7 +8,6 @@ import {
   Sparkles, Gift, Upload, CheckCircle2, Zap
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import AppLogo from "@/components/AppLogo";
 
 function useDarkModeToggle() {
   const getInitial = () => {
