@@ -379,8 +379,15 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-black text-foreground">فَصْل</h2>
-              <p className="text-xs text-primary/70">مصحح الرياضيات — بكالوريا 2026</p>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", boxShadow: "0 2px 8px rgba(99,102,241,0.3)" }}>
+                  <span className="text-sm font-black text-white" style={{ fontFamily: "serif" }}>Σ</span>
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-foreground leading-tight">سِيغْمَا</h2>
+                  <p className="text-xs text-primary/70 leading-tight">مصحح الرياضيات · بكالوريا 2026</p>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -622,7 +629,7 @@ export default function Dashboard() {
               >
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <span className="text-xs font-semibold text-primary">فَصْل يقيّم محاولتك...</span>
+                  <span className="text-xs font-semibold text-primary">Σ سِيغْمَا يقيّم محاولتك...</span>
                   <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-bold px-2.5 py-0.5 rounded-full mr-auto">
                     <Sparkles className="w-3 h-3" />
                     {selectedShoba}
@@ -643,7 +650,7 @@ export default function Dashboard() {
               </div>
               <h3 className="text-base font-bold text-foreground mb-2">السبورة فارغة</h3>
               <p className="text-sm text-muted-foreground max-w-xs">
-                ارفع صورة التمرين وصورة محاولتك وسيقيّم فَصْل إجابتك فوراً
+                ارفع صورة التمرين وصورة محاولتك وسيقيّم سِيغْمَا إجابتك فوراً
               </p>
             </div>
           ) : (

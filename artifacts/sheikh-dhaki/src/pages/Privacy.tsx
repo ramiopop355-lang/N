@@ -16,7 +16,7 @@ export default function Privacy() {
         </button>
 
         <h1 className="text-2xl font-black text-foreground mb-2">سياسة الخصوصية</h1>
-        <p className="text-xs text-muted-foreground mb-8">Privacy Policy — فَصْل 2026</p>
+        <p className="text-xs text-muted-foreground mb-8">Privacy Policy — سِيغْمَا Σ 2026</p>
 
         <div className="space-y-6 text-sm leading-relaxed text-foreground/85">
 
@@ -48,7 +48,7 @@ export default function Privacy() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-border text-xs text-muted-foreground text-center">
-          فَصْل — جميع الحقوق محفوظة 2026
+          سِيغْمَا Σ — جميع الحقوق محفوظة 2026
         </div>
       </div>
     </div>

@@ -220,16 +220,23 @@ export default function Login() {
           {/* Header */}
           <div className="px-8 pt-7 pb-5 text-center">
             <motion.div
-              initial={{ scale: 0.6, opacity: 0 }}
+              initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 20 }}
-              className="inline-flex mb-3"
+              transition={{ delay: 0.1, type: "spring", stiffness: 240, damping: 18 }}
+              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3"
+              style={{
+                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                boxShadow: "0 8px 24px rgba(99,102,241,0.35)",
+              }}
             >
-              <AppLogo size={56} />
+              <span className="text-3xl font-black text-white select-none" style={{ fontFamily: "serif", letterSpacing: "-1px" }}>Σ</span>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <h1 className="text-xl font-black text-foreground tracking-tight mb-0.5">فَصْل</h1>
-              <p className="text-xs text-primary/70">مصحح رياضيات الباك بالمنهجية الجزائرية 2026</p>
+              <h1 className="text-2xl font-black text-foreground tracking-tight mb-1">سِيغْمَا</h1>
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold text-primary/80">مصحح رياضيات البكالوريا بالذكاء الاصطناعي</p>
+                <p className="text-xs text-muted-foreground">منهجية وزارة التربية الجزائرية · بكالوريا 2026</p>
+              </div>
             </motion.div>
           </div>
 
@@ -411,7 +418,7 @@ export default function Login() {
 
           {/* Footer */}
           <div className="border-t border-border px-6 py-3 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">© فَصْل 2026</p>
+            <p className="text-xs text-muted-foreground">© سِيغْمَا 2026</p>
             <button
               onClick={toggle}
               className="w-7 h-7 rounded-full border border-border bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border/80 transition-all"
