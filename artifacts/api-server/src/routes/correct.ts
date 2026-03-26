@@ -168,6 +168,12 @@ ${notes ? `ملاحظة الطالب: ${notes}` : ""}
       const model = genai.getGenerativeModel({
         model: "gemini-2.5-flash",
         systemInstruction: SYSTEM_PROMPT,
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 8192,
+          // @ts-ignore — thinkingConfig is valid but not yet in type defs
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       });
 
       const result = await model.generateContentStream([
