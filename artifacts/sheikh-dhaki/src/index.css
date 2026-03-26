@@ -116,18 +116,3 @@ input, textarea {
   user-select: text;
 }
 
-/* إخفاء زر Progressier */
-[id^="progressier"],
-[id*="progressier"],
-[class^="progressier"],
-[class*="progressier"],
-[data-progressier],
-#progressier-container,
-#pwa-install-button,
-iframe[src*="progressier.app"],
-div[style*="progressier"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
