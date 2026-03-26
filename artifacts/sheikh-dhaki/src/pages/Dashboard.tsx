@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -50,7 +50,15 @@ function useDarkModeToggle() {
   return { isDark, toggle };
 }
 
-function RIPCopy({ rip }: { rip: string }) {
+const MarkdownResult = React.memo(function MarkdownResult({ text }: { text: string }) {
+  return (
+    <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground leading-relaxed">
+      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{text}</ReactMarkdown>
+    </div>
+  );
+});
+
+const RIPCopy = React.memo(function RIPCopy({ rip }: { rip: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(rip);
@@ -68,9 +76,9 @@ function RIPCopy({ rip }: { rip: string }) {
       </span>
     </button>
   );
-}
+});
 
-function CopyButton({ text }: { text: string }) {
+const CopyButton = React.memo(function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
@@ -86,7 +94,7 @@ function CopyButton({ text }: { text: string }) {
       {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
-}
+});
 
 type ImageUploadZoneProps = {
   label: string;
@@ -98,7 +106,7 @@ type ImageUploadZoneProps = {
   onClear: () => void;
 };
 
-function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, onClear }: ImageUploadZoneProps) {
+const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, onClear }: ImageUploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -162,7 +170,7 @@ function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, on
       )}
     </div>
   );
-}
+});
 
 export default function Dashboard() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -758,9 +766,7 @@ export default function Dashboard() {
                     {selectedShoba}
                   </span>
                 </div>
-                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground leading-relaxed">
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{streamingText}</ReactMarkdown>
-                </div>
+                <MarkdownResult text={streamingText} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -826,9 +832,7 @@ export default function Dashboard() {
                         </div>
                       )}
                       <div className="flex-1 p-6 pt-4">
-                        <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground leading-relaxed">
-                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{item.evaluation}</ReactMarkdown>
-                        </div>
+                        <MarkdownResult text={item.evaluation} />
                       </div>
                     </div>
                   </motion.div>
