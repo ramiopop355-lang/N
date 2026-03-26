@@ -9,16 +9,11 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const safeStorage = {
-  get: (key: string) => { try { return localStorage.getItem(key); } catch { return null; } },
-  set: (key: string, val: string) => { try { localStorage.setItem(key, val); } catch { /* noop */ } },
-};
-
 function useDarkModeToggle() {
   const getInitial = () => {
-    const stored = safeStorage.get("dhaki-dark");
+    const stored = localStorage.getItem("dhaki-dark");
     if (stored !== null) return stored === "true";
-    try { return window.matchMedia("(prefers-color-scheme: dark)").matches; } catch { return false; }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   };
   const [isDark, setIsDark] = useState(() => {
     const d = getInitial();
@@ -29,7 +24,7 @@ function useDarkModeToggle() {
     setIsDark((prev) => {
       const next = !prev;
       document.documentElement.classList.toggle("dark", next);
-      safeStorage.set("dhaki-dark", String(next));
+      localStorage.setItem("dhaki-dark", String(next));
       return next;
     });
   };
