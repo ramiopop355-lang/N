@@ -848,10 +848,12 @@ export default function Dashboard() {
       {/* Footer */}
       <footer className="border-t border-border bg-card py-2">
         <div className="flex items-center justify-center px-4">
-          <span className="text-xs text-muted-foreground/70">
-            تم برمجته من طرف{" "}
-            <span className="font-semibold text-primary/80">w-merada</span>
-          </span>
+          <a
+            href="/privacy"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            سياسة الخصوصية (Privacy Policy)
+          </a>
         </div>
       </footer>
     </div>
