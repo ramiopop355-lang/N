@@ -97,78 +97,74 @@ function isRetryableError(err: unknown): boolean {
   );
 }
 
+async function tryKey<T>(
+  key: string,
+  label: string,
+  fn: (apiKey: string) => Promise<T>
+): Promise<{ ok: true; value: T } | { ok: false }> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const value = await fn(key);
+      return { ok: true, value };
+    } catch (err: unknown) {
+      if (isFatalError(err)) {
+        console.warn(`[${label}] Key ...${key.slice(-6)} suspended permanently.`);
+        suspendedKeys.add(key);
+        return { ok: false };
+      }
+      if (isExhaustedError(err)) {
+        const isDaily = (err instanceof Error) &&
+          (err.message.toLowerCase().includes("quota") ||
+           err.message.toLowerCase().includes("resource_exhausted"));
+        const cooldown = isDaily ? DAILY_COOLDOWN_MS : RPM_COOLDOWN_MS;
+        console.warn(`[${label}] Key ...${key.slice(-6)} rate limited — cooldown ${cooldown / 1000}s.`);
+        setCooldown(key, cooldown);
+        return { ok: false };
+      }
+      if (isRetryableError(err) && attempt < 2) {
+        await sleep(1500);
+        continue;
+      }
+      return { ok: false };
+    }
+  }
+  return { ok: false };
+}
+
 async function callWithKeyRotation<T>(
   fn: (apiKey: string) => Promise<T>
 ): Promise<T> {
-  const paidKey = loadPaidKey();
+  const paidKey  = loadPaidKey();
   const freeKeys = loadFreeKeys();
-  const allKeys = [...(paidKey ? [paidKey] : []), ...freeKeys];
-  if (allKeys.length === 0) throw new Error("لا يوجد مفتاح Gemini API مضبوط");
 
-  let lastErr: unknown;
+  // المجموعة الكاملة: المدفوع أولاً ثم المجانية — يُستخدم في الوضعين
+  const pool = [...(paidKey ? [paidKey] : []), ...freeKeys];
+  if (pool.length === 0) throw new Error("لا يوجد مفتاح Gemini API مضبوط");
 
-  // 1️⃣ جرّب المفتاح المدفوع أولاً
+  const tried = new Set<string>();
+
+  // 1️⃣ المفتاح المدفوع — أولوية قصوى
   if (paidKey && isKeyAvailable(paidKey)) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        return await fn(paidKey);
-      } catch (err: unknown) {
-        lastErr = err;
-        if (isFatalError(err)) {
-          console.warn(`[PAID] Key suspended permanently.`);
-          suspendedKeys.add(paidKey);
-          break;
-        }
-        if (isExhaustedError(err)) {
-          console.warn(`[PAID] Rate limited — cooldown ${RPM_COOLDOWN_MS / 1000}s.`);
-          setCooldown(paidKey, RPM_COOLDOWN_MS);
-          break;
-        }
-        if (isRetryableError(err) && attempt < 2) {
-          await sleep(1500);
-          continue;
-        }
-        break;
-      }
+    tried.add(paidKey);
+    const res = await tryKey(paidKey, "PAID", fn);
+    if (res.ok) return res.value;
+  }
+
+  // 2️⃣ دوران على كامل المجموعة (المجانية + المدفوع إذا عاد متاحاً)
+  for (let i = 0; i < pool.length; i++) {
+    const key = pool[(freeKeyIndex + i) % pool.length];
+    if (tried.has(key) || !isKeyAvailable(key)) continue;
+    tried.add(key);
+
+    const label = key === paidKey ? "PAID" : "FREE";
+    const res = await tryKey(key, label, fn);
+    if (res.ok) {
+      freeKeyIndex = (freeKeyIndex + 1) % pool.length;
+      return res.value;
     }
   }
 
-  // 2️⃣ انتقل للمفاتيح المجانية بالتناوب
-  const triedFree = new Set<string>();
-  while (true) {
-    const key = getNextFreeKey(freeKeys);
-    if (!key || triedFree.has(key)) break;
-    triedFree.add(key);
-
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        return await fn(key);
-      } catch (err: unknown) {
-        lastErr = err;
-        if (isFatalError(err)) {
-          console.warn(`[FREE] Key ...${key.slice(-6)} suspended permanently.`);
-          suspendedKeys.add(key);
-          break;
-        }
-        if (isExhaustedError(err)) {
-          const isDaily = (err instanceof Error) &&
-            (err.message.toLowerCase().includes("quota") ||
-             err.message.toLowerCase().includes("resource_exhausted"));
-          const cooldown = isDaily ? DAILY_COOLDOWN_MS : RPM_COOLDOWN_MS;
-          console.warn(`[FREE] Key ...${key.slice(-6)} rate limited — cooldown ${cooldown / 1000}s.`);
-          setCooldown(key, cooldown);
-          break;
-        }
-        if (isRetryableError(err) && attempt < 2) {
-          await sleep(1500);
-          continue;
-        }
-        break;
-      }
-    }
-  }
-
-  throw lastErr ?? new Error("فشلت كل مفاتيح Gemini API");
+  throw new Error("فشلت كل مفاتيح Gemini API");
 }
 // ─────────────────────────────────────────────────────────────────
 
