@@ -116,3 +116,18 @@ input, textarea {
   user-select: text;
 }
 
+/* إصلاح اتجاه الرياضيات — KaTeX يجب أن يكون LTR دائماً */
+.katex,
+.katex-display,
+.katex-html,
+.math,
+mjx-container {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: embed !important;
+}
+
+.katex-display {
+  text-align: center !important;
+}
+
