@@ -1,8 +1,88 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { evaluate } from "mathjs";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// ── التحقق الرياضي بـ mathjs ──────────────────────────────────────
+interface ExprPair {
+  student:  string;
+  expected: string;
+  variable: string;
+  context:  string;
+}
+
+interface VerifResult extends ExprPair {
+  equivalent: boolean | null;
+}
+
+function checkEquivalence(expr1: string, expr2: string, variable: string): boolean | null {
+  const testPoints = [1, 2, Math.PI, -1, 0.5, 7, 0.1, 3];
+  try {
+    for (const val of testPoints) {
+      const scope: Record<string, number> = { [variable]: val };
+      const v1 = evaluate(expr1, scope) as number;
+      const v2 = evaluate(expr2, scope) as number;
+      if (typeof v1 !== "number" || typeof v2 !== "number" || !isFinite(v1) || !isFinite(v2)) continue;
+      if (Math.abs(v1 - v2) > 1e-9) return false;
+    }
+    return true;
+  } catch {
+    return null;
+  }
+}
+
+const EXTRACT_PROMPT = `Look at both images (exercise + student attempt).
+Extract up to 5 mathematical expression pairs where the student wrote a result that can be verified.
+Return ONLY a valid JSON array — no markdown, no explanation.
+Each item: {"student":"expr","expected":"expr","variable":"x","context":"brief label"}
+Use JavaScript/mathjs syntax: 2*x+2, (x+1)^2, sqrt(x), log(x), e^x → exp(x).
+If the correct expected answer cannot be determined from the exercise, set expected to null.
+If no verifiable pairs exist, return [].`;
+
+async function preAnalyze(
+  exerciseBase64: string, exerciseMime: string,
+  attemptBase64: string,  attemptMime: string,
+  apiKey: string
+): Promise<string> {
+  try {
+    const genai = new GoogleGenerativeAI(apiKey);
+    const model = genai.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { temperature: 0, maxOutputTokens: 512, responseMimeType: "application/json" },
+    });
+    const raw = await withTimeout(
+      model.generateContent([
+        { inlineData: { data: exerciseBase64, mimeType: exerciseMime } },
+        { inlineData: { data: attemptBase64,  mimeType: attemptMime  } },
+        EXTRACT_PROMPT,
+      ]),
+      18_000
+    );
+    const pairs = JSON.parse(raw.response.text()) as ExprPair[];
+    if (!Array.isArray(pairs) || pairs.length === 0) return "";
+
+    const results: VerifResult[] = pairs
+      .filter((p) => p.student && p.expected)
+      .map((p) => ({
+        ...p,
+        equivalent: checkEquivalence(p.student, p.expected, p.variable || "x"),
+      }));
+
+    if (results.length === 0) return "";
+
+    const lines = results.map((r) => {
+      const mark = r.equivalent === true ? "✅ مكافئ رياضياً" :
+                   r.equivalent === false ? "❌ غير مكافئ" : "⚠️ لم يُتحقق";
+      return `- ${r.context}: إجابة الطالب \`${r.student}\` مقابل الصحيح \`${r.expected}\` → ${mark}`;
+    });
+
+    return `\n\n**[تحقق mathjs تلقائي]:**\n${lines.join("\n")}`;
+  } catch {
+    return "";
+  }
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -254,6 +334,12 @@ router.post(
       const attemptBase64 = attemptFile.buffer.toString("base64");
       const attemptMime = attemptFile.mimetype || "image/jpeg";
 
+      // ── التحقق الرياضي المسبق بـ mathjs ──
+      const anyKey = loadPaidKey() ?? loadFreeKeys()[0] ?? "";
+      const mathjsVerification = anyKey
+        ? await preAnalyze(exerciseBase64, exerciseMime, attemptBase64, attemptMime, anyKey).catch(() => "")
+        : "";
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
@@ -264,7 +350,7 @@ ${notes ? `ملاحظة الطالب: ${notes}` : ""}
 
 الصورة الأولى: نص التمرين.
 الصورة الثانية: محاولة الطالب في حل التمرين.
-
+${mathjsVerification ? `\n**[نتائج التحقق الحسابي التلقائي — استخدمها كمرجع داخلي ثابت]:**${mathjsVerification}\n` : ""}
 قيّم محاولة الطالب وفق الهيكل البيداغوجي الإلزامي ومنهاج البكالوريا الجزائرية 2026.`;
 
       const result = await withTimeout(callWithKeyRotation((apiKey) => {
