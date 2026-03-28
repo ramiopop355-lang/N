@@ -50,7 +50,7 @@ async function preAnalyze(
   try {
     const genai = new GoogleGenerativeAI(apiKey);
     const model = genai.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       generationConfig: { temperature: 0, maxOutputTokens: 512, responseMimeType: "application/json" },
     });
     const raw = await withTimeout(
@@ -59,7 +59,7 @@ async function preAnalyze(
         { inlineData: { data: attemptBase64,  mimeType: attemptMime  } },
         EXTRACT_PROMPT,
       ]),
-      18_000
+      5_000
     );
     const pairs = JSON.parse(raw.response.text()) as ExprPair[];
     if (!Array.isArray(pairs) || pairs.length === 0) return "";
@@ -280,7 +280,7 @@ async function callOpenRouterStream(
       client.chat.completions.create({
         model: "google/gemini-2.5-flash",
         temperature: 0.2,
-        max_tokens: 8192,
+        max_tokens: 4096,
         stream: true,
         messages: [
           { role: "system", content: systemPrompt },
@@ -480,16 +480,21 @@ router.post(
       const attemptBase64 = attemptFile?.buffer.toString("base64") ?? "";
       const attemptMime = attemptFile?.mimetype ?? "image/jpeg";
 
-      // ── التحقق الرياضي المسبق بـ mathjs (فقط في وضع التصحيح) ──
-      const anyKey = loadPaidKey() ?? loadFreeKeys()[0] ?? "";
-      const mathjsVerification = (!isSolveMode && anyKey)
-        ? await preAnalyze(exerciseBase64, exerciseMime, attemptBase64, attemptMime, anyKey).catch(() => "")
-        : "";
-
+      // ── إرسال headers الـ SSE فوراً — الاتصال يُفتح قبل أي معالجة ──
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("Access-Control-Allow-Origin", "*");
+      res.flushHeaders();
+
+      // ── التحقق الرياضي بـ mathjs بشكل متوازٍ (max 3 ثوانٍ) ──
+      const anyKey = loadPaidKey() ?? loadFreeKeys()[0] ?? "";
+      const mathjsVerification = (!isSolveMode && anyKey)
+        ? await Promise.race([
+            preAnalyze(exerciseBase64, exerciseMime, attemptBase64, attemptMime, anyKey).catch(() => ""),
+            sleep(3_000).then(() => ""),
+          ])
+        : "";
 
       const userMessage = isSolveMode
         ? `الشعبة: **${shoba}**
@@ -528,7 +533,7 @@ ${mathjsVerification ? `\n**[نتائج التحقق الحسابي التلقا
             systemInstruction: SYSTEM_PROMPT,
             generationConfig: {
               temperature: 0.2,
-              maxOutputTokens: 8192,
+              maxOutputTokens: 4096,
               // @ts-ignore
               thinkingConfig: { thinkingBudget: 0 },
             },
