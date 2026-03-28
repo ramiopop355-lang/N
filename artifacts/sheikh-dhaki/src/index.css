@@ -148,8 +148,4 @@ mjx-container {
 .prose table td:empty::after {
   content: '';
 }
-/* canvas رسم بياني */
-canvas {
-  max-width: 100%;
-}
 
