@@ -85,18 +85,102 @@ const mdComponents: Components = {
   },
 };
 
-const MarkdownResult = React.memo(function MarkdownResult({ text }: { text: string }) {
+// ── تحليل الرد إلى أقسام ───────────────────────────────────────────
+interface AISection { title: string; content: string; }
+
+const SECTION_STYLES: Record<string, { icon: string; label: string; header: string; border: string; bg: string }> = {
+  "الحكم":                    { icon: "⚖️", label: "الحكم",                   header: "text-foreground",                                           border: "border-r-4 border-primary/50",           bg: "bg-primary/5 dark:bg-primary/8"                           },
+  "أين أخطأ الطالب":         { icon: "🔍", label: "أين أخطأ الطالب",          header: "text-orange-700 dark:text-orange-400",                      border: "border-r-4 border-orange-400 dark:border-orange-600", bg: "bg-orange-50 dark:bg-orange-950/30"                       },
+  "التصحيح":                  { icon: "✏️", label: "التصحيح",                  header: "text-blue-700 dark:text-blue-400",                          border: "border-r-4 border-blue-400 dark:border-blue-600",    bg: "bg-blue-50 dark:bg-blue-950/30"                           },
+  "الحل النموذجي المختصر":   { icon: "📝", label: "الحل النموذجي",            header: "text-violet-700 dark:text-violet-400",                      border: "border-r-4 border-violet-400 dark:border-violet-600",bg: "bg-violet-50 dark:bg-violet-950/30"                       },
+  "الحل المنهجي":             { icon: "📐", label: "الحل المنهجي الكامل",      header: "text-indigo-700 dark:text-indigo-400",                      border: "border-r-4 border-indigo-400 dark:border-indigo-600",bg: "bg-indigo-50 dark:bg-indigo-950/30"                       },
+  "قراءة التمرين":            { icon: "📖", label: "قراءة التمرين",            header: "text-foreground",                                           border: "border-r-4 border-muted-foreground/30",              bg: "bg-muted/40"                                              },
+  "التحقق":                   { icon: "✅", label: "التحقق",                   header: "text-green-700 dark:text-green-400",                        border: "border-r-4 border-green-400 dark:border-green-600",  bg: "bg-green-50 dark:bg-green-950/30"                         },
+  "التحقق من النتيجة":        { icon: "✅", label: "التحقق",                   header: "text-green-700 dark:text-green-400",                        border: "border-r-4 border-green-400 dark:border-green-600",  bg: "bg-green-50 dark:bg-green-950/30"                         },
+  "نصيحة":                    { icon: "💡", label: "نصيحة للامتحان",           header: "text-amber-700 dark:text-amber-400",                        border: "border-r-4 border-amber-400 dark:border-amber-500",  bg: "bg-amber-50 dark:bg-amber-950/30"                         },
+  "نصيحة للامتحان":           { icon: "💡", label: "نصيحة للامتحان",           header: "text-amber-700 dark:text-amber-400",                        border: "border-r-4 border-amber-400 dark:border-amber-500",  bg: "bg-amber-50 dark:bg-amber-950/30"                         },
+};
+
+function getStyle(title: string) {
+  return SECTION_STYLES[title] ?? { icon: "📌", label: title, header: "text-foreground", border: "border-r-4 border-border", bg: "bg-muted/20" };
+}
+
+function parseAIResponse(text: string): AISection[] | null {
+  if (!text.includes("📌")) return null;
+  const parts = text.split(/\n(?=\s*\*{0,2}📌)/);
+  if (parts.length <= 1) return null;
+  const sections: AISection[] = [];
+  for (const part of parts) {
+    const trimmed = part.replace(/^\s*-{3,}\s*\n?/, "").replace(/\n?\s*-{3,}\s*$/, "").trim();
+    if (!trimmed) continue;
+    const m = trimmed.match(/^\*{0,2}📌\s*([^:\n*]+):?\*{0,2}\s*([\s\S]*)/);
+    if (m) sections.push({ title: m[1].trim(), content: m[2].trim() });
+    else sections.push({ title: "", content: trimmed });
+  }
+  return sections.length > 1 ? sections : null;
+}
+
+function VerdictBadge({ text }: { text: string }) {
+  const ok  = text.includes("✔️") || text.includes("صحيح");
+  const mid = text.includes("⚠️") || text.includes("ناقص");
+  const bad = text.includes("❌") || text.includes("خطأ");
+  const cls = ok  ? "bg-green-100 border-green-300 text-green-800 dark:bg-green-950/60 dark:border-green-700 dark:text-green-300"
+            : mid ? "bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-950/60 dark:border-amber-700 dark:text-amber-300"
+            : bad ? "bg-red-100   border-red-300   text-red-800   dark:bg-red-950/60   dark:border-red-700   dark:text-red-300"
+                  : "bg-muted border-border text-foreground";
+  const label = ok ? "✔️ صحيح — إجابتك سليمة رياضياً"
+              : mid ? "⚠️ ناقص — صحيح لكن يوجد نقص في الخطوات"
+              : bad ? "❌ خطأ — يوجد خطأ رياضي يؤثر على النتيجة"
+                    : text;
+  return (
+    <div className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl border-2 font-bold text-base ${cls}`}>
+      {label}
+    </div>
+  );
+}
+
+function ProseBlock({ text }: { text: string }) {
   return (
     <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground leading-relaxed">
-      <ReactMarkdown
-        remarkPlugins={[remarkMath, remarkGfm]}
-        rehypePlugins={[rehypeKatex]}
-        components={mdComponents}
-      >
+      <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]} components={mdComponents}>
         {text}
       </ReactMarkdown>
     </div>
   );
+}
+
+function SectionCard({ section }: { section: AISection }) {
+  const s = getStyle(section.title);
+  const isVerdict = section.title === "الحكم";
+  return (
+    <div className={`rounded-xl overflow-hidden ${s.border} ${s.bg}`}>
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-black/5 dark:border-white/5">
+        <span className="text-sm leading-none">{s.icon}</span>
+        <span className={`text-[0.8rem] font-bold tracking-wide ${s.header}`}>{s.label}</span>
+      </div>
+      <div className="px-4 py-3">
+        {isVerdict ? <VerdictBadge text={section.content} /> : <ProseBlock text={section.content} />}
+      </div>
+    </div>
+  );
+}
+
+const MarkdownResult = React.memo(function MarkdownResult({ text }: { text: string }) {
+  const sections = parseAIResponse(text);
+  if (sections && sections.length > 1) {
+    return (
+      <div className="flex flex-col gap-3">
+        {sections.map((sec, i) =>
+          sec.title
+            ? <SectionCard key={i} section={sec} />
+            : sec.content
+              ? <ProseBlock key={i} text={sec.content} />
+              : null
+        )}
+      </div>
+    );
+  }
+  return <ProseBlock text={text} />;
 });
 
 const RIPCopy = React.memo(function RIPCopy({ rip }: { rip: string }) {
