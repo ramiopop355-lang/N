@@ -15,8 +15,28 @@ interface AuthContextType {
   updateUser: (token: string, user: AuthUser) => void;
 }
 
-const AUTH_KEY = "ustad-auth-token";
-const USER_KEY = "ustad-auth-user";
+const AUTH_KEY   = "ustad-auth-token";
+const USER_KEY   = "ustad-auth-user";
+const DEVICE_KEY = "sigma-device-id";
+
+export function getDeviceId(): string {
+  let id = localStorage.getItem(DEVICE_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_KEY, id);
+  }
+  return id;
+}
+
+export function getDeviceName(): string {
+  const ua = navigator.userAgent;
+  if (/android/i.test(ua)) return "Android";
+  if (/iphone|ipad/i.test(ua)) return "iPhone/iPad";
+  if (/windows/i.test(ua)) return "Windows";
+  if (/mac/i.test(ua)) return "Mac";
+  if (/linux/i.test(ua)) return "Linux";
+  return "جهاز غير معروف";
+}
 
 const AuthContext = createContext<AuthContextType | null>(null);
 

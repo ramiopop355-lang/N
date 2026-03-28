@@ -8,6 +8,13 @@ const db = new Database();
 
 const JWT_SECRET = process.env["JWT_SECRET"] ?? "ustad-riyad-2026-secret-key";
 const SALT_ROUNDS = 10;
+const MAX_DEVICES = 3;
+
+interface DeviceInfo {
+  id: string;
+  name: string;
+  registeredAt: string;
+}
 
 interface User {
   username: string;
@@ -15,6 +22,7 @@ interface User {
   passwordHash: string;
   createdAt: string;
   activated: boolean;
+  devices: DeviceInfo[];
 }
 
 function userKey(username: string) {
@@ -65,6 +73,7 @@ router.post("/auth/register", async (req, res) => {
       passwordHash,
       createdAt: new Date().toISOString(),
       activated: false,
+      devices: [],
     };
 
     await db.set(userKey(cleanUsername), JSON.stringify(user));
@@ -130,9 +139,11 @@ router.post("/auth/activate", async (req, res) => {
 
 router.post("/auth/login", async (req, res) => {
   try {
-    const { username, password } = req.body as {
+    const { username, password, deviceId, deviceName } = req.body as {
       username?: string;
       password?: string;
+      deviceId?: string;
+      deviceName?: string;
     };
 
     if (!username || !password) {
@@ -149,6 +160,30 @@ router.post("/auth/login", async (req, res) => {
       return res.status(401).json({ error: "اسم المستخدم أو كلمة السر غير صحيحة" });
     }
 
+    // ── إدارة الأجهزة ──────────────────────────────────────────
+    const devices: DeviceInfo[] = user.devices ?? [];
+
+    if (deviceId) {
+      const alreadyRegistered = devices.some((d) => d.id === deviceId);
+
+      if (!alreadyRegistered) {
+        if (devices.length >= MAX_DEVICES) {
+          return res.status(403).json({
+            error: `تم تجاوز الحد الأقصى للأجهزة (${MAX_DEVICES} أجهزة). احذف جهازاً قديماً من إعدادات حسابك.`,
+            code: "DEVICE_LIMIT_REACHED",
+            deviceCount: devices.length,
+          });
+        }
+        devices.push({
+          id: deviceId,
+          name: deviceName ?? "جهاز غير معروف",
+          registeredAt: new Date().toISOString(),
+        });
+        const updatedUser: User = { ...user, devices };
+        await db.set(userKey(user.username), JSON.stringify(updatedUser));
+      }
+    }
+
     const token = jwt.sign(
       { username: user.username, phone: user.phone, activated: user.activated },
       JWT_SECRET,
@@ -160,10 +195,63 @@ router.post("/auth/login", async (req, res) => {
       message: `مرحباً ${user.username}!`,
       token,
       user: { username: user.username, phone: user.phone, activated: user.activated },
+      deviceCount: devices.length,
     });
   } catch (err) {
     console.error("Login error:", err);
     return res.status(500).json({ error: "خطأ في الخادم، حاول مجدداً" });
+  }
+});
+
+// ── إدارة الأجهزة ────────────────────────────────────────────────
+router.get("/auth/devices", async (req, res) => {
+  try {
+    const authHeader = req.headers["authorization"] ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
+
+    let payload: { username: string } & Record<string, unknown>;
+    try { payload = jwt.verify(token, JWT_SECRET) as typeof payload; }
+    catch { return res.status(401).json({ error: "جلسة منتهية، أعد تسجيل الدخول" }); }
+
+    const user = await getUser(payload.username);
+    if (!user) return res.status(404).json({ error: "الحساب غير موجود" });
+
+    const devices = (user.devices ?? []).map((d) => ({
+      id: d.id,
+      name: d.name,
+      registeredAt: d.registeredAt,
+    }));
+
+    return res.json({ devices, max: MAX_DEVICES });
+  } catch (err) {
+    console.error("Devices error:", err);
+    return res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+router.delete("/auth/devices/:deviceId", async (req, res) => {
+  try {
+    const authHeader = req.headers["authorization"] ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
+
+    let payload: { username: string } & Record<string, unknown>;
+    try { payload = jwt.verify(token, JWT_SECRET) as typeof payload; }
+    catch { return res.status(401).json({ error: "جلسة منتهية، أعد تسجيل الدخول" }); }
+
+    const user = await getUser(payload.username);
+    if (!user) return res.status(404).json({ error: "الحساب غير موجود" });
+
+    const { deviceId } = req.params;
+    const filtered = (user.devices ?? []).filter((d) => d.id !== deviceId);
+    const updatedUser: User = { ...user, devices: filtered };
+    await db.set(userKey(user.username), JSON.stringify(updatedUser));
+
+    return res.json({ success: true, message: "تم حذف الجهاز بنجاح", devices: filtered });
+  } catch (err) {
+    console.error("Delete device error:", err);
+    return res.status(500).json({ error: "خطأ في الخادم" });
   }
 });
 

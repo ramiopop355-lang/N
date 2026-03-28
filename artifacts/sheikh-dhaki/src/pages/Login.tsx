@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getDeviceId, getDeviceName } from "@/context/AuthContext";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -121,11 +121,20 @@ export default function Login() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: loginUsername.trim(), password: loginPassword }),
+        body: JSON.stringify({
+          username: loginUsername.trim(),
+          password: loginPassword,
+          deviceId: getDeviceId(),
+          deviceName: getDeviceName(),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: "فشل الدخول", description: data.error ?? "خطأ غير معروف", variant: "destructive" });
+        if (data.code === "DEVICE_LIMIT_REACHED") {
+          toast({ title: "حد الأجهزة", description: data.error, variant: "destructive", duration: 6000 });
+        } else {
+          toast({ title: "فشل الدخول", description: data.error ?? "خطأ غير معروف", variant: "destructive" });
+        }
         return;
       }
       login(data.token, data.user);
