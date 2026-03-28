@@ -147,8 +147,143 @@ mjx-container {
   font-size: 0.85rem;
   padding: 0.35rem 0.75rem;
 }
-/* سهل التمييز بين الخلايا الفارغة والأعداد في الجداول */
 .prose table td:empty::after {
   content: '';
+}
+
+/* ══════════════════════════════════════════════
+   ✨ PROFESSIONAL VISUAL POLISH
+   ══════════════════════════════════════════════ */
+
+/* خلفية ضبابية متحركة — كمثل Linear / Notion */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 20%, hsl(var(--primary) / 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 85% 75%, hsl(var(--primary) / 0.04) 0%, transparent 70%);
+}
+.dark body::before,
+body.dark::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 20%, hsl(var(--primary) / 0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 85% 75%, hsl(var(--primary) / 0.07) 0%, transparent 70%);
+}
+
+/* ارتفاع البطاقات — depth system */
+.rounded-xl, .rounded-2xl {
+  position: relative;
+}
+
+/* ظل ناعم على البطاقات */
+aside {
+  box-shadow:
+    0 0 0 1px hsl(var(--border) / 0.5),
+    4px 0 24px -4px hsl(var(--primary) / 0.08),
+    0 0 40px -8px hsl(var(--primary) / 0.04);
+}
+.dark aside {
+  box-shadow:
+    0 0 0 1px hsl(var(--border)),
+    4px 0 32px -4px hsl(var(--primary) / 0.15),
+    0 0 60px -10px hsl(var(--primary) / 0.08);
+}
+
+/* البطاقات الملوّنة — ظل يتطابق مع لونها */
+[class*="border-blue-4"]:is(.rounded-xl),
+[class*="border-blue-6"]:is(.rounded-xl) {
+  box-shadow: 0 2px 12px -2px rgb(59 130 246 / 0.15), 0 1px 4px -1px rgb(59 130 246 / 0.10);
+}
+[class*="border-orange-4"]:is(.rounded-xl),
+[class*="border-orange-6"]:is(.rounded-xl) {
+  box-shadow: 0 2px 12px -2px rgb(249 115 22 / 0.15), 0 1px 4px -1px rgb(249 115 22 / 0.10);
+}
+[class*="border-violet-4"]:is(.rounded-xl),
+[class*="border-violet-6"]:is(.rounded-xl) {
+  box-shadow: 0 2px 12px -2px rgb(139 92 246 / 0.15), 0 1px 4px -1px rgb(139 92 246 / 0.10);
+}
+[class*="border-indigo-4"]:is(.rounded-xl),
+[class*="border-indigo-6"]:is(.rounded-xl) {
+  box-shadow: 0 2px 12px -2px rgb(99 102 241 / 0.15), 0 1px 4px -1px rgb(99 102 241 / 0.10);
+}
+[class*="border-green-4"]:is(.rounded-xl),
+[class*="border-green-5"]:is(.rounded-xl),
+[class*="border-green-6"]:is(.rounded-xl) {
+  box-shadow: 0 2px 12px -2px rgb(34 197 94 / 0.15), 0 1px 4px -1px rgb(34 197 94 / 0.10);
+}
+[class*="border-amber-4"]:is(.rounded-xl),
+[class*="border-amber-5"]:is(.rounded-xl) {
+  box-shadow: 0 2px 12px -2px rgb(245 158 11 / 0.15), 0 1px 4px -1px rgb(245 158 11 / 0.10);
+}
+
+/* Hover — طفو خفيف على بطاقات التاريخ */
+.group:is([class*="rounded"]):hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* زر الإرسال الرئيسي — توهج احترافي */
+button:is([class*="bg-gradient-to-l"]):not(:disabled):hover {
+  box-shadow:
+    0 0 0 1px rgba(253, 224, 71, 0.3),
+    0 8px 24px -4px rgba(253, 224, 71, 0.25),
+    0 4px 12px -2px rgba(0, 0, 0, 0.4) !important;
+}
+button:is([class*="bg-gradient-to-l"]):not(:disabled):active {
+  transform: scale(0.985) translateY(0) !important;
+  transition: transform 0.1s ease !important;
+}
+
+/* حقل النص — حدود متوهجة عند التركيز */
+textarea:focus, input:focus {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15), 0 0 0 1px hsl(var(--primary) / 0.4);
+  outline: none;
+}
+
+/* منطقة رفع الصور — بريق عند hover */
+label:is([class*="border-dashed"]):not([class*="border-primary"]):hover {
+  box-shadow: 0 0 20px -4px hsl(var(--primary) / 0.20);
+}
+
+/* الشريط العلوي للآية — توهج أسفلي ناعم */
+[class*="border-b border-primary"] {
+  box-shadow: 0 1px 0 0 hsl(var(--primary) / 0.08), 0 4px 12px -4px hsl(var(--primary) / 0.06);
+}
+
+/* خط التمرير الاحترافي */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.30), hsl(var(--primary) / 0.15));
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.55), hsl(var(--primary) / 0.35));
+}
+
+/* انتقال ناعم عالمي */
+button, a, label, input, textarea, [class*="transition"] {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* حواف الأزرار الثانوية — توهج خفيف */
+button:is([class*="bg-card"]):hover,
+button:is([class*="bg-background"]):hover,
+button:is([class*="bg-muted"]):hover {
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 2px 8px -2px hsl(var(--primary) / 0.10);
+}
+
+/* Badge الحكم — ظل ملوّن */
+[class*="bg-green-100"], [class*="bg-green-950"] {
+  box-shadow: 0 2px 8px -2px rgb(34 197 94 / 0.20);
+}
+[class*="bg-amber-100"], [class*="bg-amber-950"] {
+  box-shadow: 0 2px 8px -2px rgb(245 158 11 / 0.20);
+}
+[class*="bg-red-100"], [class*="bg-red-950"] {
+  box-shadow: 0 2px 8px -2px rgb(239 68 68 / 0.20);
 }
 
