@@ -905,6 +905,33 @@ export default function Dashboard() {
             )}
           </div>
 
+          {/* بطاقة التفكير — تظهر فور الإرسال حتى يبدأ النص */}
+          <AnimatePresence>
+            {isPending && !streamingText && (
+              <motion.div
+                key="thinking"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-sm mb-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                  <span className="text-sm font-semibold text-primary">
+                    Σ سِيغْمَا {solveMode ? "يحلّل التمرين ويبني الحل..." : "يفكّر في إجابتك..."}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 mr-7">
+                  قد يستغرق التفكير العميق بضع ثوانٍ — انتظر قليلاً
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Streaming Result */}
           <AnimatePresence>
             {streamingText && (
