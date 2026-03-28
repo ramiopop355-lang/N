@@ -182,6 +182,7 @@ export default function Dashboard() {
   const [attemptFile, setAttemptFile] = useState<File | null>(null);
   const [attemptPreviewUrl, setAttemptPreviewUrl] = useState<string | null>(null);
 
+  const [solveMode, setSolveMode] = useState(false);
   const [notes, setNotes] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [streamingText, setStreamingText] = useState("");
@@ -391,7 +392,7 @@ export default function Dashboard() {
       toast({ title: "ارفع صورة التمرين أولاً!", variant: "destructive" });
       return;
     }
-    if (!attemptFile) {
+    if (!solveMode && !attemptFile) {
       toast({ title: "ارفع صورة محاولتك أولاً!", variant: "destructive" });
       return;
     }
@@ -405,9 +406,10 @@ export default function Dashboard() {
     try {
       const formData = new FormData();
       formData.append("exercise", exerciseFile);
-      formData.append("attempt", attemptFile);
+      if (attemptFile) formData.append("attempt", attemptFile);
       formData.append("shoba", selectedShoba);
       formData.append("notes", notes);
+      formData.append("mode", solveMode ? "solve" : "correct");
 
       const response = await fetch("/api/correct", {
         method: "POST",
@@ -501,7 +503,7 @@ export default function Dashboard() {
     }
   };
 
-  const canSubmit = !!exerciseFile && !!attemptFile && (isActivated || !trialExpired);
+  const canSubmit = !!exerciseFile && (solveMode || !!attemptFile) && (isActivated || !trialExpired);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -667,6 +669,24 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-1.5 bg-muted/50 rounded-xl p-1 border border-border">
+            <button
+              onClick={() => setSolveMode(false)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all ${!solveMode ? "bg-background shadow text-foreground border border-border" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <PenLine className="w-3.5 h-3.5" />
+              صحّح محاولتي
+            </button>
+            <button
+              onClick={() => { setSolveMode(true); clearAttempt(); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all ${solveMode ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              الحل الكامل
+            </button>
+          </div>
+
           {/* Exercise Upload */}
           <ImageUploadZone
             label="صورة التمرين"
@@ -678,16 +698,18 @@ export default function Dashboard() {
             onClear={clearExercise}
           />
 
-          {/* Attempt Upload */}
-          <ImageUploadZone
-            label="صورة محاولتك"
-            icon={<PenLine className="w-3.5 h-3.5 text-accent" />}
-            hint="ما كتبته بخط يدك"
-            file={attemptFile}
-            previewUrl={attemptPreviewUrl}
-            onFileChange={setAttempt}
-            onClear={clearAttempt}
-          />
+          {/* Attempt Upload — مخفي في وضع الحل الكامل */}
+          {!solveMode && (
+            <ImageUploadZone
+              label="صورة محاولتك"
+              icon={<PenLine className="w-3.5 h-3.5 text-accent" />}
+              hint="ما كتبته بخط يدك"
+              file={attemptFile}
+              previewUrl={attemptPreviewUrl}
+              onFileChange={setAttempt}
+              onClear={clearAttempt}
+            />
+          )}
 
           {/* Notes */}
           <div className="rounded-2xl border border-amber-300/60 dark:border-amber-500/30 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 dark:from-amber-900/15 dark:to-yellow-900/10 p-3.5 space-y-2 shadow-sm shadow-amber-100/60 dark:shadow-amber-900/10">
@@ -714,12 +736,14 @@ export default function Dashboard() {
               {isPending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-yellow-300 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-yellow-200">جاري التصحيح...</span>
+                  <span className="text-yellow-200">{solveMode ? "جاري بناء الحل..." : "جاري التصحيح..."}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-yellow-300 drop-shadow-[0_0_6px_rgba(253,224,71,0.8)]" />
-                  <span className="text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.7)]">قيّم محاولتي</span>
+                  <span className="text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.7)]">
+                    {solveMode ? "احصل على الحل الكامل" : "قيّم محاولتي"}
+                  </span>
                 </>
               )}
             </button>
@@ -729,7 +753,7 @@ export default function Dashboard() {
                   ? <button onClick={() => setShowPayment(true)} className="text-primary font-bold hover:underline">فعّل حسابك (500 دج) للاستمرار ←</button>
                   : !exerciseFile
                     ? "ارفع صورة التمرين"
-                    : "ارفع صورة محاولتك"}
+                    : !solveMode ? "ارفع صورة محاولتك" : ""}
               </p>
             )}
           </div>

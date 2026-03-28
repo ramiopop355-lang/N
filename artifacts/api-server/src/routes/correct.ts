@@ -262,11 +262,20 @@ async function callOpenRouterStream(
   exerciseBase64: string, exerciseMime: string,
   attemptBase64: string,  attemptMime: string,
   systemPrompt: string,   userMessage: string,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  isSolveMode = false
 ): Promise<boolean> {
   const client = getOpenRouterClient();
   if (!client) return false;
   try {
+    const imageContent: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
+      { type: "image_url", image_url: { url: `data:${exerciseMime};base64,${exerciseBase64}` } },
+    ];
+    if (!isSolveMode && attemptBase64) {
+      imageContent.push({ type: "image_url", image_url: { url: `data:${attemptMime};base64,${attemptBase64}` } });
+    }
+    imageContent.push({ type: "text", text: userMessage });
+
     const stream = await withTimeout(
       client.chat.completions.create({
         model: "google/gemini-2.5-flash",
@@ -275,14 +284,7 @@ async function callOpenRouterStream(
         stream: true,
         messages: [
           { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "image_url", image_url: { url: `data:${exerciseMime};base64,${exerciseBase64}` } },
-              { type: "image_url", image_url: { url: `data:${attemptMime};base64,${attemptBase64}`  } },
-              { type: "text", text: userMessage },
-            ],
-          },
+          { role: "user", content: imageContent },
         ],
       }) as Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>>,
       90_000
@@ -399,7 +401,30 @@ const SYSTEM_PROMPT = `أنت أستاذ رياضيات جزائري خبير و
 ❌ خطأ    — يوجد خطأ رياضي حقيقي يؤثر على النتيجة
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 هيكل الرد الإجباري (لا تتجاوزه ولا تختصره)
+🧩 وضع بناء الحل الكامل (بدون محاولة طالب)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+عندما يطلب الطالب الحل الكامل مباشرة (بدون محاولة)، استخدم هذا الهيكل الإلزامي:
+
+📌 قراءة التمرين:
+[لخّص ما يطلبه التمرين في جملة أو جملتين]
+
+📌 الحل المنهجي الكامل:
+[حل مفصل ومنظم، خطوة بخطوة، بكل التبريرات الرياضية المطلوبة في البكالوريا]
+القواعد:
+  - ابدأ بتحديد المُعطيات والمطلوب
+  - سمِّ كل خطوة بوضوح (مجال التعريف، المشتق، جدول التغيرات، إلخ)
+  - بيّن جميع التفاصيل الحسابية — لا تتجاوز خطوة واحدة
+  - استخدم جداول الإشارة وجداول التغيرات عند الحاجة (بتنسيق نصي واضح)
+  - اكتب كل تعبير رياضي بـ LaTeX
+
+📌 التحقق من النتيجة:
+[تحقق بالتعويض أو بطريقة مناسبة]
+
+📌 نصيحة للامتحان:
+[نقطة مهمة حول هذا النوع من التمارين في البكالوريا]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 هيكل رد التصحيح (عند وجود محاولة طالب)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📌 الحكم: [✔️ صحيح / ⚠️ ناقص / ❌ خطأ]
@@ -446,19 +471,18 @@ router.post(
         res.status(400).json({ error: "يجب رفع صورة التمرين" });
         return;
       }
-      if (!attemptFile) {
-        res.status(400).json({ error: "يجب رفع صورة محاولتك" });
-        return;
-      }
+
+      const mode = (req.body.mode as string) || (attemptFile ? "correct" : "solve");
+      const isSolveMode = mode === "solve" || !attemptFile;
 
       const exerciseBase64 = exerciseFile.buffer.toString("base64");
       const exerciseMime = exerciseFile.mimetype || "image/jpeg";
-      const attemptBase64 = attemptFile.buffer.toString("base64");
-      const attemptMime = attemptFile.mimetype || "image/jpeg";
+      const attemptBase64 = attemptFile?.buffer.toString("base64") ?? "";
+      const attemptMime = attemptFile?.mimetype ?? "image/jpeg";
 
-      // ── التحقق الرياضي المسبق بـ mathjs ──
+      // ── التحقق الرياضي المسبق بـ mathjs (فقط في وضع التصحيح) ──
       const anyKey = loadPaidKey() ?? loadFreeKeys()[0] ?? "";
-      const mathjsVerification = anyKey
+      const mathjsVerification = (!isSolveMode && anyKey)
         ? await preAnalyze(exerciseBase64, exerciseMime, attemptBase64, attemptMime, anyKey).catch(() => "")
         : "";
 
@@ -467,7 +491,13 @@ router.post(
       res.setHeader("Connection", "keep-alive");
       res.setHeader("Access-Control-Allow-Origin", "*");
 
-      const userMessage = `الشعبة: **${shoba}**
+      const userMessage = isSolveMode
+        ? `الشعبة: **${shoba}**
+${notes ? `ملاحظة الطالب: ${notes}` : ""}
+
+الصورة المرفقة: نص التمرين.
+المطلوب: ابنِ الحل المنهجي الكامل لهذا التمرين خطوة بخطوة وفق منهاج البكالوريا الجزائرية 2026 للشعبة المذكورة، مع كل التبريرات والتفاصيل الحسابية اللازمة. استخدم هيكل "وضع بناء الحل الكامل" الموضح في تعليماتك.`
+        : `الشعبة: **${shoba}**
 ${notes ? `ملاحظة الطالب: ${notes}` : ""}
 
 الصورة الأولى: نص التمرين.
@@ -480,12 +510,17 @@ ${mathjsVerification ? `\n**[نتائج التحقق الحسابي التلقا
         exerciseBase64, exerciseMime,
         attemptBase64,  attemptMime,
         SYSTEM_PROMPT,  userMessage,
-        (text) => res.write(`data: ${JSON.stringify({ content: text })}\n\n`)
+        (text) => res.write(`data: ${JSON.stringify({ content: text })}\n\n`),
+        isSolveMode
       );
 
       // ── 2️⃣ احتياطي: Gemini مع دوران المفاتيح ──
       if (!orSuccess) {
         console.info("[FALLBACK] استخدام Gemini...");
+        const geminiParts = isSolveMode
+          ? [{ inlineData: { data: exerciseBase64, mimeType: exerciseMime } }, userMessage]
+          : [{ inlineData: { data: exerciseBase64, mimeType: exerciseMime } }, { inlineData: { data: attemptBase64, mimeType: attemptMime } }, userMessage];
+
         const result = await withTimeout(callWithKeyRotation((apiKey) => {
           const genai = new GoogleGenerativeAI(apiKey);
           const model = genai.getGenerativeModel({
@@ -498,11 +533,7 @@ ${mathjsVerification ? `\n**[نتائج التحقق الحسابي التلقا
               thinkingConfig: { thinkingBudget: 0 },
             },
           });
-          return model.generateContentStream([
-            { inlineData: { data: exerciseBase64, mimeType: exerciseMime } },
-            { inlineData: { data: attemptBase64,  mimeType: attemptMime  } },
-            userMessage,
-          ]);
+          return model.generateContentStream(geminiParts);
         }), 90_000);
 
         for await (const chunk of result.stream) {
