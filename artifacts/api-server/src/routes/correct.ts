@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { evaluate } from "mathjs";
+import OpenAI from "openai";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -246,6 +247,56 @@ async function callWithKeyRotation<T>(
 
   throw new Error("فشلت كل مفاتيح Gemini API");
 }
+// ── OpenRouter (أولوية قصوى — مدفوع) ────────────────────────────
+function getOpenRouterClient(): OpenAI | null {
+  const key = process.env["OPENROUTER_API_KEY"];
+  if (!key) return null;
+  return new OpenAI({
+    apiKey: key,
+    baseURL: "https://openrouter.ai/api/v1",
+    defaultHeaders: { "HTTP-Referer": "https://sigmaaidzbac.replit.app" },
+  });
+}
+
+async function callOpenRouterStream(
+  exerciseBase64: string, exerciseMime: string,
+  attemptBase64: string,  attemptMime: string,
+  systemPrompt: string,   userMessage: string,
+  onChunk: (text: string) => void
+): Promise<boolean> {
+  const client = getOpenRouterClient();
+  if (!client) return false;
+  try {
+    const stream = await withTimeout(
+      client.chat.completions.create({
+        model: "google/gemini-2.5-flash",
+        temperature: 0.2,
+        max_tokens: 8192,
+        stream: true,
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: `data:${exerciseMime};base64,${exerciseBase64}` } },
+              { type: "image_url", image_url: { url: `data:${attemptMime};base64,${attemptBase64}`  } },
+              { type: "text", text: userMessage },
+            ],
+          },
+        ],
+      }) as Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>>,
+      90_000
+    );
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content ?? "";
+      if (text) onChunk(text);
+    }
+    return true;
+  } catch (err) {
+    console.warn("[OPENROUTER] فشل — ينتقل لـ Gemini:", (err as Error).message?.substring(0, 100));
+    return false;
+  }
+}
 // ─────────────────────────────────────────────────────────────────
 
 const router: IRouter = Router();
@@ -352,29 +403,39 @@ ${notes ? `ملاحظة الطالب: ${notes}` : ""}
 ${mathjsVerification ? `\n**[نتائج التحقق الحسابي التلقائي — استخدمها كمرجع داخلي ثابت]:**${mathjsVerification}\n` : ""}
 قيّم محاولة الطالب وفق الهيكل البيداغوجي الإلزامي ومنهاج البكالوريا الجزائرية 2026.`;
 
-      const result = await withTimeout(callWithKeyRotation((apiKey) => {
-        const genai = new GoogleGenerativeAI(apiKey);
-        const model = genai.getGenerativeModel({
-          model: "gemini-2.5-flash",
-          systemInstruction: SYSTEM_PROMPT,
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 8192,
-            // @ts-ignore — thinkingConfig is valid but not yet in type defs
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        });
-        return model.generateContentStream([
-          { inlineData: { data: exerciseBase64, mimeType: exerciseMime } },
-          { inlineData: { data: attemptBase64, mimeType: attemptMime } },
-          userMessage,
-        ]);
-      }), 90_000);
+      // ── 1️⃣ OpenRouter أولاً (مدفوع — أولوية قصوى) ──
+      const orSuccess = await callOpenRouterStream(
+        exerciseBase64, exerciseMime,
+        attemptBase64,  attemptMime,
+        SYSTEM_PROMPT,  userMessage,
+        (text) => res.write(`data: ${JSON.stringify({ content: text })}\n\n`)
+      );
 
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (text) {
-          res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+      // ── 2️⃣ احتياطي: Gemini مع دوران المفاتيح ──
+      if (!orSuccess) {
+        console.info("[FALLBACK] استخدام Gemini...");
+        const result = await withTimeout(callWithKeyRotation((apiKey) => {
+          const genai = new GoogleGenerativeAI(apiKey);
+          const model = genai.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            systemInstruction: SYSTEM_PROMPT,
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 8192,
+              // @ts-ignore
+              thinkingConfig: { thinkingBudget: 0 },
+            },
+          });
+          return model.generateContentStream([
+            { inlineData: { data: exerciseBase64, mimeType: exerciseMime } },
+            { inlineData: { data: attemptBase64,  mimeType: attemptMime  } },
+            userMessage,
+          ]);
+        }), 90_000);
+
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
         }
       }
 
