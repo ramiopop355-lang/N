@@ -128,16 +128,10 @@ async function validateReceipt(
 
     const result = await Promise.race([
       model.generateContent([
-        {
-          inlineData: {
-            data: imageBuffer.toString("base64"),
-            mimeType,
-          },
-        },
-        `هذه صورة وصل دفع مالي (بريدي موب أو حوالة أو تحويل بنكي جزائري).
-استخرج المبلغ المدفوع بالدينار الجزائري.
+        { inlineData: { data: imageBuffer.toString("base64"), mimeType } },
+        `انظر في هذه الصورة. هل تحتوي على الرقم 500 أو أي رقم أكبر من 500؟
 أعد JSON فقط بدون أي نص آخر:
-{"amount": <رقم المبلغ أو null إذا لم تجده>, "valid": <true إذا كان المبلغ 500 دج أو أكثر وإلا false>}`,
+{"valid": <true إذا وجدت رقم 500 أو أكبر وإلا false>, "amount": <أكبر رقم وجدته أو null>}`,
       ]),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 12_000)),
     ]);
@@ -145,16 +139,13 @@ async function validateReceipt(
     const raw = result.response.text().trim();
     const parsed = JSON.parse(raw) as { amount: number | null; valid: boolean };
 
-    if (parsed.amount === null) {
-      return { valid: false, amount: null, reason: "لم نتمكن من قراءة مبلغ الوصل — تأكد من وضوح الصورة" };
-    }
     if (!parsed.valid) {
-      return { valid: false, amount: parsed.amount, reason: `المبلغ في الوصل (${parsed.amount} دج) أقل من 500 دج المطلوب` };
+      return { valid: false, amount: parsed.amount, reason: "الصورة لا تحتوي على رقم 500 أو أكثر — تأكد من وضوح الوصل" };
     }
     return { valid: true, amount: parsed.amount, reason: "ok" };
   } catch (err) {
     console.error("[RECEIPT] Gemini error:", err);
-    return { valid: false, amount: null, reason: "تعذّر التحقق من الوصل — حاول برفع صورة أوضح" };
+    return { valid: false, amount: null, reason: "تعذّر قراءة الصورة — حاول برفع صورة أوضح" };
   }
 }
 
