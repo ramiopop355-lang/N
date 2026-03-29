@@ -1275,35 +1275,30 @@ export default function Dashboard() {
       </main>
       </div>
 
-      {/* ═══ شريط الأخطاء الشائعة ═══ */}
+      {/* ═══ فقاعة الأخطاء الشائعة ═══ */}
       <motion.button
         onClick={() => setLocation("/mistakes")}
-        initial={{ y: 80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1.2, type: "spring", stiffness: 200, damping: 24 }}
-        className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-5 py-3.5"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 1.2, type: "spring", stiffness: 260, damping: 22 }}
+        whileHover={{ scale: 1.07 }}
+        whileTap={{ scale: 0.93 }}
+        className="fixed bottom-6 left-1/2 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full"
         style={{
-          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e1b4b 100%)",
-          borderTop: "1px solid rgba(99,102,241,0.35)",
-          boxShadow: "0 -4px 24px -6px rgba(99,102,241,0.30), 0 -1px 0 rgba(99,102,241,0.15)",
+          transform: "translateX(-50%)",
+          background: "linear-gradient(135deg, #312e81 0%, #4f46e5 50%, #7c3aed 100%)",
+          boxShadow: "0 4px 24px rgba(99,102,241,0.50), 0 1px 0 rgba(255,255,255,0.08) inset",
+          border: "1px solid rgba(139,92,246,0.45)",
         }}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))", border: "1px solid rgba(99,102,241,0.4)" }}
-          >
-            <BookOpen className="w-3.5 h-3.5 text-indigo-200" />
-          </div>
-          <div className="text-right">
-            <p className="text-xs font-black text-indigo-100 leading-tight">أكثر الأخطاء شيوعاً في الباك</p>
-            <p className="text-[10px] text-indigo-300/80 leading-tight">اضغط لاستكشاف أخطاء التلاميذ حسب الوحدة</p>
-          </div>
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: "rgba(255,255,255,0.15)" }}
+        >
+          <BookOpen className="w-3.5 h-3.5 text-white" />
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-indigo-300">استكشف</span>
-          <ChevronUp className="w-4 h-4 text-indigo-300" />
-        </div>
+        <span className="text-sm font-black text-white whitespace-nowrap">أكثر الأخطاء شيوعاً</span>
+        <ChevronUp className="w-4 h-4 text-indigo-200" />
       </motion.button>
 
       {/* Payment Modal */}
