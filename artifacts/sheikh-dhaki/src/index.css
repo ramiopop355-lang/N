@@ -88,6 +88,7 @@
   }
 
   html {
+    font-size: 17px;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -100,12 +101,19 @@
     direction: rtl;
     text-align: right;
     min-height: 100vh;
+    font-size: 1rem;
+    line-height: 1.65;
     transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold;
     letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  p, span, label, button, input, textarea {
+    font-size: inherit;
   }
 
   ::selection {
@@ -134,6 +142,17 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { @apply bg-primary/20 rounded-full; }
   ::-webkit-scrollbar-thumb:hover { @apply bg-primary/35; }
+
+  /* رفع الحدّ الأدنى لأصغر الخطوط */
+  .text-xs   { font-size: 0.82rem  !important; line-height: 1.55; }
+  .text-sm   { font-size: 0.94rem  !important; line-height: 1.6;  }
+  .text-base { font-size: 1rem     !important; line-height: 1.65; }
+  .text-lg   { font-size: 1.15rem  !important; }
+  .text-xl   { font-size: 1.3rem   !important; }
+  .text-2xl  { font-size: 1.55rem  !important; }
+
+  /* وضوح أكبر لكل النصوص */
+  * { -webkit-font-smoothing: antialiased; }
 }
 
 * {
