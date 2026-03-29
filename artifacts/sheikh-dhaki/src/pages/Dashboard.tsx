@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Trash2, CalendarDays, Upload, ChevronDown,
   Image as ImageIcon, XCircle, LogOut, MessageSquare, Moon, Sun, Copy, Check,
-  FileText, PenLine, CheckCircle2, Zap, ShieldCheck
+  FileText, PenLine, CheckCircle2, Zap, ShieldCheck, BookOpen, ChevronUp
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "wouter";
@@ -819,7 +819,7 @@ export default function Dashboard() {
       <DailyVerse />
       <div className="flex flex-col md:flex-row flex-1 min-h-0">
       {/* SIDEBAR */}
-      <aside className="w-full md:w-80 lg:w-96 bg-card border-l border-border/60 flex flex-col shrink-0 overflow-y-auto" style={{ boxShadow: "4px 0 40px -8px hsl(var(--primary)/0.18), 0 0 0 1px hsl(var(--border)/0.8)" }}>
+      <aside className="w-full md:w-80 lg:w-96 bg-card border-l border-border/60 flex flex-col shrink-0 overflow-y-auto pb-16 md:pb-16" style={{ boxShadow: "4px 0 40px -8px hsl(var(--primary)/0.18), 0 0 0 1px hsl(var(--border)/0.8)" }}>
         <div className="p-6 flex-1 flex flex-col gap-5">
           {/* Header */}
           <div
@@ -1083,7 +1083,7 @@ export default function Dashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main ref={boardRef} className="flex-1 p-6 overflow-y-auto bg-muted/20">
+      <main ref={boardRef} className="flex-1 p-6 pb-20 overflow-y-auto bg-muted/20">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1
@@ -1238,6 +1238,37 @@ export default function Dashboard() {
         </div>
       </main>
       </div>
+
+      {/* ═══ شريط الأخطاء الشائعة ═══ */}
+      <motion.button
+        onClick={() => setLocation("/mistakes")}
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 1.2, type: "spring", stiffness: 200, damping: 24 }}
+        className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-5 py-3.5"
+        style={{
+          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e1b4b 100%)",
+          borderTop: "1px solid rgba(99,102,241,0.35)",
+          boxShadow: "0 -4px 24px -6px rgba(99,102,241,0.30), 0 -1px 0 rgba(99,102,241,0.15)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))", border: "1px solid rgba(99,102,241,0.4)" }}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-indigo-200" />
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-black text-indigo-100 leading-tight">أكثر الأخطاء شيوعاً في الباك</p>
+            <p className="text-[10px] text-indigo-300/80 leading-tight">اضغط لاستكشاف أخطاء التلاميذ حسب الوحدة</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold text-indigo-300">استكشف</span>
+          <ChevronUp className="w-4 h-4 text-indigo-300" />
+        </div>
+      </motion.button>
 
       {/* Payment Modal */}
       <AnimatePresence>
