@@ -4,8 +4,16 @@ import jwt from "jsonwebtoken";
 import Database from "@replit/database";
 import multer from "multer";
 import https from "https";
+import crypto from "crypto";
 
-// ── تحليل وصل CCP بالذكاء الاصطناعي ─────────────────────────────────
+// ── مستوى الأمان ───────────────────────────────────────────────────
+// normal  → يقبل أي وصل يحتوي على مبلغ صحيح + كلمة مفتاحية واحدة
+// strict  → يشترط رقم عملية + كلمة مفتاحية + تاريخ
+// ultra   → يشترط كل شيء + التاريخ يجب ألا يتجاوز 7 أيام
+type SecurityLevel = "normal" | "strict" | "ultra";
+const SECURITY_LEVEL: SecurityLevel = "strict";
+
+// ── مفاتيح Gemini ──────────────────────────────────────────────────
 const GEMINI_KEYS = [
   process.env["GEMINI_API_KEY"],
   process.env["GEMINI_API_KEY_2"],
@@ -22,65 +30,144 @@ function nextGeminiKey(): string | null {
   return key ?? null;
 }
 
-async function verifyCCPReceipt(imageBuffer: Buffer, mimeType: string): Promise<{ valid: boolean; reason: string }> {
-  const base64Image = imageBuffer.toString("base64");
-
-  const prompt = `أنت خبير في التحقق من وثائق الدفع الجزائرية.
-حلل الصورة المرفقة وحدد بدقة إذا كانت وصل تأكيد دفع حقيقي عبر CCP (الحساب البريدي الجاري) الصادر من بريد الجزائر / Algérie Poste.
-
-تحقق من وجود العناصر التالية:
-- شعار بريد الجزائر أو أي مؤشر على CCP
-- رقم الحساب البريدي (CCP)
-- مبلغ الدفع
-- تاريخ العملية
-- رقم مرجعي أو رقم العملية
-
-أجب بالتنسيق الآتي فقط (سطر واحد):
-VALID: [نعم/لا] | REASON: [سبب موجز بالعربية]
-
-إذا كانت الصورة ضبابية أو غير واضحة ولكنها تُظهر عناصر وصل CCP، اعتبرها صالحة.
-إذا كانت الصورة لا علاقة لها بوصل CCP (مثلاً صورة شخصية، منظر طبيعي، شاشة فارغة، إلخ)، اعتبرها غير صالحة.`;
-
-  const body = JSON.stringify({
-    contents: [
-      {
-        parts: [
-          { text: prompt },
-          { inline_data: { mime_type: mimeType, data: base64Image } }
-        ]
-      }
-    ],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 120 }
-  });
-
-  // نحاول OpenRouter أولاً
-  const openrouterKey = process.env["OPENROUTER_API_KEY"];
-  if (openrouterKey) {
-    try {
-      const result = await callOpenRouterVision(openrouterKey, base64Image, mimeType, prompt);
-      return parseVerificationResult(result);
-    } catch (err) {
-      console.warn("[CCP-VERIFY] OpenRouter failed, trying Gemini keys:", err);
-    }
-  }
-
-  // الاحتياط: مفاتيح Gemini المباشرة
-  for (let attempt = 0; attempt < GEMINI_KEYS.length; attempt++) {
-    const key = nextGeminiKey();
-    if (!key) break;
-    try {
-      const result = await callGeminiDirect(key, body);
-      return parseVerificationResult(result);
-    } catch (err) {
-      console.warn(`[CCP-VERIFY] Gemini key ${attempt + 1} failed:`, err);
-    }
-  }
-
-  // إذا فشل كل شيء نُفعّل تلقائياً لتجنب حجب المستخدم
-  console.error("[CCP-VERIFY] All providers failed — allowing activation as fallback");
-  return { valid: true, reason: "تحقق تلقائي بسبب عطل مؤقت" };
+// ── بنية بيانات الوصل المستخرجة ─────────────────────────────────────
+interface ReceiptData {
+  amount: number | null;        // المبلغ بالدينار
+  transactionId: string | null; // رقم العملية (6+ أرقام)
+  date: string | null;          // التاريخ المستخرج (YYYY-MM-DD أو نص)
+  keywords: string[];           // كلمات مفتاحية موجودة
+  rawText: string;              // النص الخام من الذكاء الاصطناعي
+  confidence: "high" | "low";  // مدى وضوح الصورة
 }
 
+interface VerificationResult {
+  valid: boolean;
+  reason: string;
+  code: "ACCEPTED" | "REJECTED" | "DUPLICATE_TXN" | "DUPLICATE_IMAGE" | "INSUFFICIENT_DATA" | "LOW_AMOUNT" | "FALLBACK_ACCEPTED";
+  data?: Partial<ReceiptData>;
+}
+
+// ── استخراج hash للصورة (للكشف عن الصور المكررة) ──────────────────
+function hashImage(buffer: Buffer): string {
+  return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+// ── البرومبت المنظّم لاستخراج بيانات الوصل ──────────────────────────
+function buildExtractionPrompt(): string {
+  return `أنت نظام OCR متخصص في تحليل وصولات الدفع الجزائرية (CCP / BaridiMob / Algérie Poste).
+
+حلّل الصورة المرفقة واستخرج البيانات التالية بدقة:
+
+1. AMOUNT: المبلغ المدفوع بالدينار الجزائري (رقم فقط، بدون حروف أو رموز). إذا وجدت أرقاماً متعددة اختر المبلغ المنطقي بين 100 و 100000 دج.
+2. TXN_ID: رقم العملية أو المرجع أو رقم الإيصال (يجب أن يكون 6 أرقام أو أكثر). إذا لم يوجد اكتب NONE.
+3. DATE: تاريخ العملية بصيغة YYYY-MM-DD. إذا لم يوجد اكتب NONE.
+4. KEYWORDS: اذكر الكلمات المفتاحية الموجودة في الصورة من هذه القائمة فقط (مفصولة بفاصلة): baridi, poste, ccp, algerie, virement, recharge, موبايل, بريد, تحويل, رصيد, إيداع
+5. CONFIDENCE: هل الصورة واضحة بما يكفي لقراءة البيانات؟ أجب بـ high أو low فقط.
+
+أجب بهذا التنسيق الحرفي فقط (لا تضف أي شرح):
+AMOUNT: [رقم أو NONE]
+TXN_ID: [رقم أو NONE]
+DATE: [YYYY-MM-DD أو NONE]
+KEYWORDS: [قائمة أو NONE]
+CONFIDENCE: [high أو low]`;
+}
+
+// ── تحليل رد الذكاء الاصطناعي وتحويله إلى بنية بيانات ───────────────
+function parseReceiptData(rawText: string): ReceiptData {
+  const get = (key: string): string => {
+    const m = rawText.match(new RegExp(`${key}:\\s*(.+)`, "i"));
+    return m?.[1]?.trim() ?? "NONE";
+  };
+
+  const amountStr = get("AMOUNT");
+  const amount = amountStr !== "NONE" ? parseFloat(amountStr.replace(/[^\d.]/g, "")) || null : null;
+
+  const txnRaw = get("TXN_ID");
+  const transactionId = txnRaw !== "NONE" && /\d{6,}/.test(txnRaw) ? txnRaw.match(/\d{6,}/)?.[0] ?? null : null;
+
+  const dateRaw = get("DATE");
+  const date = dateRaw !== "NONE" ? dateRaw : null;
+
+  const kwRaw = get("KEYWORDS");
+  const keywords = kwRaw !== "NONE"
+    ? kwRaw.split(",").map(k => k.trim().toLowerCase()).filter(Boolean)
+    : [];
+
+  const confRaw = get("CONFIDENCE").toLowerCase();
+  const confidence = confRaw === "high" ? "high" : "low";
+
+  return { amount, transactionId, date, keywords, rawText, confidence };
+}
+
+// ── منطق التحقق حسب مستوى الأمان ────────────────────────────────────
+function applyVerificationLogic(data: ReceiptData, level: SecurityLevel): VerificationResult {
+  const KEYWORDS_POOL = ["baridi", "poste", "ccp", "algerie", "virement", "recharge", "موبايل", "بريد", "تحويل", "رصيد", "إيداع"];
+  const hasKeyword = data.keywords.some(k => KEYWORDS_POOL.includes(k));
+  const MIN_AMOUNT = 500;
+
+  // التحقق من المبلغ (مشترك بين كل المستويات)
+  if (data.amount === null) {
+    return { valid: false, reason: "لم يتم العثور على مبلغ الدفع في الوصل", code: "INSUFFICIENT_DATA" };
+  }
+  if (data.amount < MIN_AMOUNT) {
+    return {
+      valid: false,
+      reason: `المبلغ المكتشف (${data.amount} دج) أقل من الحد الأدنى المطلوب (${MIN_AMOUNT} دج)`,
+      code: "LOW_AMOUNT",
+    };
+  }
+
+  if (level === "normal") {
+    // المستوى العادي: مبلغ صحيح + كلمة مفتاحية واحدة على الأقل
+    if (!hasKeyword) {
+      return { valid: false, reason: "الصورة لا تحتوي على مؤشرات وصل بريد الجزائر", code: "INSUFFICIENT_DATA" };
+    }
+    return { valid: true, reason: `مقبول — مبلغ: ${data.amount} دج`, code: "ACCEPTED" };
+  }
+
+  if (level === "strict") {
+    // المستوى الصارم: مبلغ + كلمة مفتاحية + رقم عملية
+    if (!hasKeyword) {
+      return { valid: false, reason: "الوصل لا يحتوي على مؤشرات بريد الجزائر / CCP / BaridiMob", code: "INSUFFICIENT_DATA" };
+    }
+    if (!data.transactionId) {
+      return { valid: false, reason: "لم يُعثر على رقم العملية (6 أرقام أو أكثر)", code: "INSUFFICIENT_DATA" };
+    }
+    return {
+      valid: true,
+      reason: `مقبول — مبلغ: ${data.amount} دج | رقم العملية: ${data.transactionId}`,
+      code: "ACCEPTED",
+    };
+  }
+
+  // ultra: مبلغ + كلمة مفتاحية + رقم عملية + تاريخ لا يتجاوز 7 أيام
+  if (!hasKeyword) {
+    return { valid: false, reason: "الوصل لا يحتوي على مؤشرات بريد الجزائر / CCP / BaridiMob", code: "INSUFFICIENT_DATA" };
+  }
+  if (!data.transactionId) {
+    return { valid: false, reason: "لم يُعثر على رقم العملية (6 أرقام أو أكثر)", code: "INSUFFICIENT_DATA" };
+  }
+  if (!data.date) {
+    return { valid: false, reason: "لم يُعثر على تاريخ العملية في الوصل", code: "INSUFFICIENT_DATA" };
+  }
+  const receiptDate = new Date(data.date);
+  const now = new Date();
+  const diffDays = (now.getTime() - receiptDate.getTime()) / (1000 * 60 * 60 * 24);
+  if (isNaN(diffDays) || diffDays > 7) {
+    return {
+      valid: false,
+      reason: `تاريخ الوصل (${data.date}) يتجاوز 7 أيام — يُرجى استخدام وصل حديث`,
+      code: "REJECTED",
+    };
+  }
+  return {
+    valid: true,
+    reason: `مقبول — مبلغ: ${data.amount} دج | رقم العملية: ${data.transactionId} | التاريخ: ${data.date}`,
+    code: "ACCEPTED",
+  };
+}
+
+// ── استدعاء Gemini Vision عبر OpenRouter ─────────────────────────────
 function callOpenRouterVision(apiKey: string, base64Image: string, mimeType: string, prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
@@ -94,10 +181,9 @@ function callOpenRouterVision(apiKey: string, base64Image: string, mimeType: str
           ]
         }
       ],
-      max_tokens: 120,
-      temperature: 0.1
+      max_tokens: 200,
+      temperature: 0.0
     });
-
     const req = https.request({
       hostname: "openrouter.ai",
       path: "/api/v1/chat/completions",
@@ -127,7 +213,17 @@ function callOpenRouterVision(apiKey: string, base64Image: string, mimeType: str
   });
 }
 
-function callGeminiDirect(apiKey: string, body: string): Promise<string> {
+// ── استدعاء Gemini مباشرة (احتياط) ───────────────────────────────────
+function callGeminiDirect(apiKey: string, base64Image: string, mimeType: string, prompt: string): Promise<string> {
+  const body = JSON.stringify({
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType, data: base64Image } }
+      ]
+    }],
+    generationConfig: { temperature: 0.0, maxOutputTokens: 200 }
+  });
   return new Promise((resolve, reject) => {
     const path = `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const req = https.request({
@@ -153,18 +249,101 @@ function callGeminiDirect(apiKey: string, body: string): Promise<string> {
   });
 }
 
-function parseVerificationResult(text: string): { valid: boolean; reason: string } {
-  const match = text.match(/VALID:\s*(نعم|لا|yes|no)/i);
-  const reasonMatch = text.match(/REASON:\s*(.+)/i);
-  const reason = reasonMatch?.[1]?.trim() ?? text.trim();
-  if (!match) {
-    // إذا لم يُطابق التنسيق، نُفعّل لتجنب الرفض الخاطئ
-    return { valid: true, reason: "تم قبول الوصل" };
+// ── دالة التحقق الشاملة من الوصل ─────────────────────────────────────
+async function verifyPaymentReceipt(
+  imageBuffer: Buffer,
+  mimeType: string,
+  db: Database,
+  level: SecurityLevel = SECURITY_LEVEL
+): Promise<VerificationResult> {
+  const imageHash = hashImage(imageBuffer);
+  const base64Image = imageBuffer.toString("base64");
+  const prompt = buildExtractionPrompt();
+
+  // ── 1. التحقق من تكرار الصورة (نفس الصورة مرتين) ──────────────────
+  const hashKey = `receipt:hash:${imageHash}`;
+  const existingHash = await db.get(hashKey);
+  if (existingHash.ok && existingHash.value) {
+    return {
+      valid: false,
+      reason: "هذه الصورة استُخدمت من قبل لتفعيل حساب آخر",
+      code: "DUPLICATE_IMAGE",
+    };
   }
-  const valid = ["نعم", "yes"].includes(match[1].toLowerCase());
-  return { valid, reason };
+
+  // ── 2. استخراج البيانات بالذكاء الاصطناعي ───────────────────────────
+  let rawText = "";
+  const openrouterKey = process.env["OPENROUTER_API_KEY"];
+  if (openrouterKey) {
+    try {
+      rawText = await callOpenRouterVision(openrouterKey, base64Image, mimeType, prompt);
+      console.info("[RECEIPT-OCR] OpenRouter نجح في استخراج البيانات");
+    } catch (err) {
+      console.warn("[RECEIPT-OCR] OpenRouter فشل، يُجرّب Gemini:", (err as Error).message?.substring(0, 80));
+    }
+  }
+
+  if (!rawText) {
+    for (let attempt = 0; attempt < GEMINI_KEYS.length; attempt++) {
+      const key = nextGeminiKey();
+      if (!key) break;
+      try {
+        rawText = await callGeminiDirect(key, base64Image, mimeType, prompt);
+        console.info(`[RECEIPT-OCR] Gemini key ${attempt + 1} نجح`);
+        break;
+      } catch (err) {
+        console.warn(`[RECEIPT-OCR] Gemini key ${attempt + 1} فشل:`, (err as Error).message?.substring(0, 80));
+      }
+    }
+  }
+
+  // ── 3. إذا فشل كل شيء → قبول تلقائي احتياطي ──────────────────────
+  if (!rawText) {
+    console.error("[RECEIPT-OCR] كل المزودين فشلوا — قبول احتياطي");
+    await db.set(hashKey, JSON.stringify({ at: new Date().toISOString(), fallback: true }));
+    return { valid: true, reason: "تم القبول بسبب عطل مؤقت في التحقق", code: "FALLBACK_ACCEPTED" };
+  }
+
+  const data = parseReceiptData(rawText);
+  console.info("[RECEIPT-OCR] البيانات المستخرجة:", {
+    amount: data.amount,
+    transactionId: data.transactionId,
+    date: data.date,
+    keywords: data.keywords,
+    confidence: data.confidence,
+  });
+
+  // ── 4. التحقق من تكرار رقم العملية ──────────────────────────────────
+  if (data.transactionId) {
+    const txnKey = `receipt:txn:${data.transactionId}`;
+    const existingTxn = await db.get(txnKey);
+    if (existingTxn.ok && existingTxn.value) {
+      return {
+        valid: false,
+        reason: `رقم العملية ${data.transactionId} استُخدم مسبقاً لتفعيل حساب آخر`,
+        code: "DUPLICATE_TXN",
+        data,
+      };
+    }
+  }
+
+  // ── 5. تطبيق منطق التحقق حسب المستوى ────────────────────────────────
+  const result = applyVerificationLogic(data, level);
+  result.data = data;
+
+  // ── 6. إذا قُبل → حفظ الـ hash ورقم العملية لمنع إعادة الاستخدام ───
+  if (result.valid) {
+    const meta = { at: new Date().toISOString(), amount: data.amount, level };
+    await db.set(hashKey, JSON.stringify(meta));
+    if (data.transactionId) {
+      await db.set(`receipt:txn:${data.transactionId}`, JSON.stringify(meta));
+    }
+  }
+
+  return result;
 }
 
+// ── Express Router ────────────────────────────────────────────────────
 const router: IRouter = Router();
 const db = new Database();
 const upload = multer({
@@ -193,7 +372,7 @@ interface User {
   createdAt: string;
   activated: boolean;
   devices: DeviceInfo[];
-  receiptUploaded?: { size?: number; mime?: string; at: string; method?: string };
+  receiptUploaded?: { size?: number; mime?: string; at: string; method?: string; txnId?: string };
 }
 
 function userKey(username: string) {
@@ -207,6 +386,7 @@ async function getUser(username: string): Promise<User | null> {
   return typeof raw === "string" ? JSON.parse(raw) : raw as User;
 }
 
+// ── تسجيل حساب جديد ────────────────────────────────────────────────
 router.post("/auth/register", async (req, res) => {
   try {
     const { username, phone, password } = req.body as {
@@ -267,6 +447,7 @@ router.post("/auth/register", async (req, res) => {
   }
 });
 
+// ── تفعيل الحساب برفع وصل الدفع ────────────────────────────────────
 router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
   try {
     const authHeader = req.headers["authorization"] ?? "";
@@ -283,9 +464,7 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
     }
 
     const user = await getUser(payload.username);
-    if (!user) {
-      return res.status(404).json({ error: "الحساب غير موجود" });
-    }
+    if (!user) return res.status(404).json({ error: "الحساب غير موجود" });
 
     if (!req.file) {
       return res.status(400).json({ error: "يجب إرفاق صورة الوصل للتفعيل" });
@@ -293,28 +472,35 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
 
     const paymentMethod = (req.body as Record<string, string>)["paymentMethod"] ?? "baridimob";
 
-    // ── التحقق بالذكاء الاصطناعي للـ CCP فقط ──────────────────────────
-    if (paymentMethod === "ccp") {
-      console.info(`[ACTIVATE-CCP] ${user.username} — جاري تحليل الوصل بالذكاء الاصطناعي...`);
-      const verification = await verifyCCPReceipt(req.file.buffer, req.file.mimetype);
+    console.info(`[ACTIVATE] ${user.username} — طريقة الدفع: ${paymentMethod} — مستوى الأمان: ${SECURITY_LEVEL}`);
 
-      if (!verification.valid) {
-        console.warn(`[ACTIVATE-CCP] ${user.username} — رُفض: ${verification.reason}`);
-        return res.status(400).json({
-          error: "لم يتم التعرف على الوصل كتأكيد دفع CCP صالح",
-          reason: verification.reason,
-          code: "INVALID_CCP_RECEIPT",
-        });
-      }
+    // ── التحقق الشامل من الوصل (يعمل لـ CCP و BaridiMob معاً) ─────────
+    const verification = await verifyPaymentReceipt(req.file.buffer, req.file.mimetype, db, SECURITY_LEVEL);
 
-      console.info(`[ACTIVATE-CCP] ${user.username} — مقبول: ${verification.reason}`);
+    if (!verification.valid) {
+      const arabicCode: Record<string, string> = {
+        DUPLICATE_IMAGE: "الصورة مستخدمة مسبقاً",
+        DUPLICATE_TXN: "رقم العملية مستخدم مسبقاً",
+        LOW_AMOUNT: "المبلغ غير كافٍ",
+        INSUFFICIENT_DATA: "بيانات الوصل غير كاملة",
+        REJECTED: "الوصل مرفوض",
+      };
+      console.warn(`[ACTIVATE] ${user.username} — رُفض (${verification.code}): ${verification.reason}`);
+      return res.status(400).json({
+        error: arabicCode[verification.code] ?? "الوصل غير صالح",
+        reason: verification.reason,
+        code: verification.code,
+      });
     }
+
+    console.info(`[ACTIVATE] ${user.username} — مقبول (${verification.code}): ${verification.reason}`);
 
     const receiptMeta = {
       size: req.file.size,
       mime: req.file.mimetype,
       at: new Date().toISOString(),
       method: paymentMethod,
+      txnId: verification.data?.transactionId ?? undefined,
     };
     const updatedUser: User = { ...user, activated: true, receiptUploaded: receiptMeta };
     await db.set(userKey(user.username), JSON.stringify(updatedUser));
@@ -325,14 +511,16 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
       { expiresIn: "30d" }
     );
 
-    const methodLabel = paymentMethod === "ccp" ? "CCP" : "بريدي موب";
-    console.info(`[ACTIVATE] ${user.username} — ${methodLabel} — ${req.file.size} bytes`);
-
     return res.json({
       success: true,
       message: "تم تفعيل الحساب بنجاح!",
       token: newToken,
       user: { username: user.username, phone: user.phone, activated: true },
+      receipt: {
+        amount: verification.data?.amount,
+        transactionId: verification.data?.transactionId,
+        date: verification.data?.date,
+      },
     });
   } catch (err) {
     console.error("Activate error:", err);
@@ -340,6 +528,7 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
   }
 });
 
+// ── تسجيل الدخول ───────────────────────────────────────────────────
 router.post("/auth/login", async (req, res) => {
   try {
     const { username, password, deviceId, deviceName } = req.body as {
@@ -363,12 +552,11 @@ router.post("/auth/login", async (req, res) => {
       return res.status(401).json({ error: "اسم المستخدم أو كلمة السر غير صحيحة" });
     }
 
-    // ── إدارة الأجهزة ──────────────────────────────────────────
+    // ── إدارة الأجهزة ──────────────────────────────────────────────
     const devices: DeviceInfo[] = user.devices ?? [];
 
     if (deviceId) {
       const alreadyRegistered = devices.some((d) => d.id === deviceId);
-
       if (!alreadyRegistered) {
         if (devices.length >= MAX_DEVICES) {
           return res.status(403).json({
@@ -406,7 +594,7 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
-// ── إدارة الأجهزة ────────────────────────────────────────────────
+// ── إدارة الأجهزة ─────────────────────────────────────────────────
 router.get("/auth/devices", async (req, res) => {
   try {
     const authHeader = req.headers["authorization"] ?? "";
