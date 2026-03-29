@@ -141,18 +141,24 @@ function DailyVerse() {
   const verse = QURAN_VERSES[dayOfYear % QURAN_VERSES.length];
 
   return (
-    <div className="w-full border-b border-primary/10 bg-gradient-to-l from-primary/6 via-background to-background py-3 px-6 flex items-center justify-center gap-3">
-      <span className="text-primary/25 text-xl shrink-0 leading-none select-none" style={{ fontFamily: "'Amiri', serif" }}>﴿</span>
+    <div
+      className="mt-5 rounded-2xl px-5 py-4 flex items-center justify-center gap-3 text-center"
+      style={{
+        background: "linear-gradient(135deg, rgba(99,102,241,0.07) 0%, rgba(139,92,246,0.04) 100%)",
+        border: "1px solid rgba(99,102,241,0.15)",
+      }}
+    >
+      <span className="text-primary/30 text-2xl shrink-0 leading-none select-none" style={{ fontFamily: "'Amiri', serif" }}>﴿</span>
       <div className="text-center">
         <p
-          className="text-[0.95rem] leading-relaxed text-foreground/90"
+          className="text-base leading-relaxed text-foreground/85"
           style={{ fontFamily: "'Amiri', serif", fontWeight: 700, letterSpacing: "0.02em" }}
         >
           {verse.text}
         </p>
-        <p className="text-[0.6rem] text-primary/50 font-medium mt-0.5 tracking-wide">{verse.ref}</p>
+        <p className="text-xs text-primary/50 font-medium mt-1 tracking-wide">{verse.ref}</p>
       </div>
-      <span className="text-primary/25 text-xl shrink-0 leading-none select-none" style={{ fontFamily: "'Amiri', serif" }}>﴾</span>
+      <span className="text-primary/30 text-2xl shrink-0 leading-none select-none" style={{ fontFamily: "'Amiri', serif" }}>﴾</span>
     </div>
   );
 }
@@ -816,7 +822,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
-      <DailyVerse />
       <div className="flex flex-col md:flex-row flex-1 min-h-0">
       {/* SIDEBAR */}
       <aside className="w-full md:w-80 lg:w-96 bg-card border-l border-border/60 flex flex-col shrink-0 overflow-y-auto pb-16 md:pb-16" style={{ boxShadow: "4px 0 40px -8px hsl(var(--primary)/0.18), 0 0 0 1px hsl(var(--border)/0.8)" }}>
@@ -1185,6 +1190,7 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <MarkdownResult text={streamingText} />
+                {!isPending && <DailyVerse />}
               </motion.div>
             )}
           </AnimatePresence>
@@ -1264,6 +1270,7 @@ export default function Dashboard() {
                       )}
                       <div className="flex-1 p-6 pt-4">
                         <MarkdownResult text={item.evaluation} />
+                        <DailyVerse />
                       </div>
                     </div>
                   </motion.div>
