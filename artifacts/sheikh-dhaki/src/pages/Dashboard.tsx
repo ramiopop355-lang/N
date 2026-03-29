@@ -1069,7 +1069,7 @@ export default function Dashboard() {
           <div className="rounded-2xl border border-amber-300/60 dark:border-amber-500/30 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 dark:from-amber-900/15 dark:to-yellow-900/10 p-3.5 space-y-2 shadow-sm shadow-amber-100/60 dark:shadow-amber-900/10">
             <div className="flex items-center gap-2">
               <span className="text-base">💬</span>
-              <label className="text-xs font-semibold text-amber-700 dark:text-amber-400">قل للأستاذ</label>
+              <label className="text-xs font-semibold text-green-700 dark:text-green-400">قل للأستاذ</label>
               <span className="text-xs text-amber-600/60 dark:text-amber-500/50 mr-auto">اختياري</span>
             </div>
             <textarea
@@ -1095,7 +1095,11 @@ export default function Dashboard() {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-yellow-300 drop-shadow-[0_0_6px_rgba(253,224,71,0.8)]" />
-                  <span className="text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.7)]">
+                  <span
+                    className={solveMode
+                      ? "text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.7)]"
+                      : "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]"}
+                  >
                     {solveMode ? "احصل على الحل الكامل" : "قيّم محاولتي"}
                   </span>
                 </>
