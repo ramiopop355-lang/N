@@ -862,13 +862,29 @@ export default function Dashboard() {
           </div>
 
           {/* Countdown */}
-          <div className="bg-gradient-to-br from-green-500/10 to-green-400/10 border border-green-500/20 rounded-2xl p-4 text-center">
-            <CalendarDays className="w-5 h-5 text-green-600 mx-auto mb-1" />
-            <p className="text-xs font-medium text-muted-foreground mb-1">باقي للبكالوريا 2026</p>
-            <div className="text-4xl font-black text-green-600">
-              {daysLeft}
+          <div
+            className="rounded-2xl p-4"
+            style={{
+              background: "linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.06) 60%, rgba(5,150,105,0.04) 100%)",
+              border: "1px solid rgba(34,197,94,0.22)",
+              boxShadow: "0 4px 20px -6px rgba(34,197,94,0.20), inset 0 1px 0 rgba(255,255,255,0.10)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wider mb-1">باقي للبكالوريا 2026</p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-5xl font-black text-green-600 dark:text-green-400 leading-none tabular-nums">{daysLeft}</span>
+                  <span className="text-sm font-bold text-green-600/70 dark:text-green-400/70">يوم</span>
+                </div>
+              </div>
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.25)" }}
+              >
+                <CalendarDays className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
             </div>
-            <p className="text-xs font-semibold text-muted-foreground mt-0.5">يوم</p>
           </div>
 
           {/* XP + Streak widget */}
@@ -974,35 +990,51 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className="h-px bg-border" />
+          {/* فاصل أنيق */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border/60" />
+            <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest select-none">إعدادات</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
 
           {/* Shoba */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground block">شعبتك في البكالوريا</label>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">شعبتك في البكالوريا</label>
             <div className="relative">
               <select
                 value={selectedShoba}
                 onChange={(e) => setSelectedShoba(e.target.value)}
-                className="w-full appearance-none bg-background border border-border hover:border-primary/50 rounded-xl px-4 py-2.5 text-sm text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all cursor-pointer"
+                className="w-full appearance-none bg-card border border-border/80 hover:border-primary/50 rounded-xl px-4 py-2.5 text-sm text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                style={{ boxShadow: "0 1px 4px -1px rgba(0,0,0,0.06)" }}
               >
                 {SHOBAS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             </div>
           </div>
 
           {/* Mode Toggle */}
-          <div className="flex items-center gap-1.5 bg-muted/50 rounded-xl p-1 border border-border">
+          <div className="flex items-center gap-1 p-1 rounded-xl border border-border/70" style={{ background: "hsl(var(--muted)/0.4)" }}>
             <button
               onClick={() => setSolveMode(false)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all ${!solveMode ? "bg-background shadow text-foreground border border-border" : "text-muted-foreground hover:text-foreground"}`}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-bold transition-all duration-200"
+              style={!solveMode ? {
+                background: "hsl(var(--card))",
+                color: "hsl(var(--foreground))",
+                boxShadow: "0 1px 6px -1px rgba(0,0,0,0.10), 0 0 0 1px hsl(var(--border)/0.6)",
+              } : { color: "hsl(var(--muted-foreground))" }}
             >
               <PenLine className="w-3.5 h-3.5" />
               صحّح محاولتي
             </button>
             <button
               onClick={() => { setSolveMode(true); clearAttempt(); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all ${solveMode ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-bold transition-all duration-200"
+              style={solveMode ? {
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                color: "#fff",
+                boxShadow: "0 2px 10px -2px rgba(99,102,241,0.50)",
+              } : { color: "hsl(var(--muted-foreground))" }}
             >
               <Sparkles className="w-3.5 h-3.5" />
               الحل الكامل

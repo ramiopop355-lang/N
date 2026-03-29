@@ -210,18 +210,36 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      {/* خلفية احترافية */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-accent/5 blur-3xl" />
+        <div
+          className="absolute -top-48 -right-48 w-[520px] h-[520px]"
+          style={{ borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 65%)", filter: "blur(55px)" }}
+        />
+        <div
+          className="absolute -bottom-48 -left-48 w-[480px] h-[480px]"
+          style={{ borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.16) 0%, transparent 65%)", filter: "blur(55px)" }}
+        />
+        <div
+          className="absolute top-1/2 right-1/3 w-[350px] h-[200px]"
+          style={{ borderRadius: "50%", background: "radial-gradient(ellipse, rgba(99,102,241,0.07) 0%, transparent 60%)", filter: "blur(40px)" }}
+        />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
+        transition={{ duration: 0.50, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-sm relative"
       >
-        <div className="bg-card border border-border rounded-3xl shadow-xl shadow-black/8 overflow-hidden">
+        <div
+          className="bg-card rounded-3xl overflow-hidden"
+          style={{
+            boxShadow: "0 0 0 1px rgba(99,102,241,0.12), 0 24px 56px -12px rgba(99,102,241,0.22), 0 8px 16px -4px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05)",
+          }}
+        >
+        {/* شريط التدرج العلوي — professional top accent */}
+        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #6366f1 0%, #a78bfa 45%, #8b5cf6 100%)" }} />
 
           {/* Header */}
           <div className="px-8 pt-7 pb-5 text-center">
