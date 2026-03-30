@@ -139,7 +139,12 @@ export default function Login() {
         if (data.code === "DEVICE_LIMIT_REACHED") {
           toast({ title: "حد الأجهزة", description: data.error, variant: "destructive", duration: 6000 });
         } else {
-          toast({ title: "فشل الدخول", description: data.error ?? "خطأ غير معروف", variant: "destructive" });
+          toast({
+            title: "فشل الدخول",
+            description: (data.error ?? "خطأ غير معروف") + (res.status === 401 ? " — إذا لم تُسجِّل بعد، انقر على تبويب «تسجيل»" : ""),
+            variant: "destructive",
+            duration: 6000,
+          });
         }
         return;
       }

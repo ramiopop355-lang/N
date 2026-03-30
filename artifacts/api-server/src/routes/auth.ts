@@ -542,15 +542,22 @@ router.post("/auth/login", async (req, res) => {
       return res.status(400).json({ error: "أدخل اسم المستخدم وكلمة السر" });
     }
 
+    const normalizedUsername = username.toLowerCase().trim();
+    console.info(`[LOGIN] محاولة دخول — المستخدم: "${normalizedUsername}"`);
+
     const user = await getUser(username);
     if (!user) {
+      console.warn(`[LOGIN] ❌ المستخدم "${normalizedUsername}" غير موجود في قاعدة البيانات`);
       return res.status(401).json({ error: "اسم المستخدم أو كلمة السر غير صحيحة" });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
+      console.warn(`[LOGIN] ❌ كلمة السر خاطئة للمستخدم "${normalizedUsername}"`);
       return res.status(401).json({ error: "اسم المستخدم أو كلمة السر غير صحيحة" });
     }
+
+    console.info(`[LOGIN] ✅ دخول ناجح — "${normalizedUsername}"`);
 
     // ── إدارة الأجهزة ──────────────────────────────────────────────
     const devices: DeviceInfo[] = user.devices ?? [];
