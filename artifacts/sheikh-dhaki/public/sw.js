@@ -1,4 +1,4 @@
-const CACHE = "sigma-v7";
+const CACHE = "sigma-v8";
 const PENDING_CACHE = "sigma-pending";
 const OFFLINE_URL = "/offline.html";
 
@@ -15,6 +15,13 @@ const PRECACHE = [
   "/icon-maskable.png",
   "/.well-known/assetlinks.json",
 ];
+
+// ─── SKIP_WAITING ────────────────────────────────────────────────────────────
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
 
 // ─── Install: precache الأصول الأساسية ──────────────────────────────────────
 self.addEventListener("install", (e) => {
