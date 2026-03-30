@@ -463,6 +463,7 @@ const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint,
 
 export default function Dashboard() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const historyRef = useRef<HistoryItem[]>([]);
   const [selectedShoba, setSelectedShoba] = useState(SHOBAS[0]);
 
   const [exerciseFile, setExerciseFile] = useState<File | null>(null);
@@ -496,6 +497,19 @@ export default function Dashboard() {
   const trialRemaining = Math.max(0, TRIAL_MAX - trialUsed);
   const isActivated = user?.activated === true;
   const trialExpired = !isActivated && trialUsed >= TRIAL_MAX;
+
+  useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
+
+  useEffect(() => {
+    return () => {
+      historyRef.current.forEach(item => {
+        if (item.exercisePreview) URL.revokeObjectURL(item.exercisePreview);
+        if (item.attemptPreview) URL.revokeObjectURL(item.attemptPreview);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -708,6 +722,7 @@ export default function Dashboard() {
 
     const savedExercisePreview = exerciseFile ? URL.createObjectURL(exerciseFile) : null;
     const savedAttemptPreview = attemptFile ? URL.createObjectURL(attemptFile) : null;
+    let previewsStoredInHistory = false;
 
     try {
       const formData = new FormData();
@@ -729,7 +744,6 @@ export default function Dashboard() {
         const err = await response.json().catch(() => ({ error: "خطأ غير معروف" }));
         if (err.code === "TRIAL_EXHAUSTED") {
           setShowPayment(true);
-          setIsPending(false);
           return;
         }
         throw new Error(err.error || `خطأ: ${response.status}`);
@@ -782,6 +796,7 @@ export default function Dashboard() {
             }
             setStreamingText(fullText);
             const id = crypto.randomUUID();
+            previewsStoredInHistory = true;
             setHistory(prev => [{
               id,
               evaluation: fullText,
@@ -833,6 +848,10 @@ export default function Dashboard() {
       setStreamingText("");
     } finally {
       setIsPending(false);
+      if (!previewsStoredInHistory) {
+        if (savedExercisePreview) URL.revokeObjectURL(savedExercisePreview);
+        if (savedAttemptPreview) URL.revokeObjectURL(savedAttemptPreview);
+      }
     }
   };
 

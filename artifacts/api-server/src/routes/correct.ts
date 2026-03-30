@@ -154,14 +154,6 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000).unref();
 
-function getNextFreeKey(freeKeys: string[]): string | null {
-  const active = freeKeys.filter(isKeyAvailable);
-  if (active.length === 0) return null;
-  const key = active[freeKeyIndex % active.length];
-  freeKeyIndex = (freeKeyIndex + 1) % active.length;
-  return key;
-}
-
 function isFatalError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   return (

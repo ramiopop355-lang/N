@@ -451,7 +451,7 @@ router.post("/auth/register", async (req, res) => {
 router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
   try {
     const authHeader = req.headers["authorization"] ?? "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
     if (!token) {
       return res.status(401).json({ error: "يجب تسجيل الدخول أولاً قبل التفعيل" });
     }
@@ -598,7 +598,7 @@ router.post("/auth/login", async (req, res) => {
 router.get("/auth/devices", async (req, res) => {
   try {
     const authHeader = req.headers["authorization"] ?? "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
     if (!token) return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
 
     let payload: { username: string } & Record<string, unknown>;
@@ -624,7 +624,7 @@ router.get("/auth/devices", async (req, res) => {
 router.delete("/auth/devices/:deviceId", async (req, res) => {
   try {
     const authHeader = req.headers["authorization"] ?? "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
     if (!token) return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
 
     let payload: { username: string } & Record<string, unknown>;
