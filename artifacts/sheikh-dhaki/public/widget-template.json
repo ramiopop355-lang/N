@@ -1,0 +1,28 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "سِيغْمَا Σ",
+      "size": "Large",
+      "weight": "Bolder",
+      "horizontalAlignment": "Center"
+    },
+    {
+      "type": "TextBlock",
+      "text": "مصحح رياضيات البكالوريا",
+      "size": "Small",
+      "horizontalAlignment": "Center",
+      "wrap": true
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "افتح التطبيق",
+      "url": "https://sigmaaidzbac.replit.app"
+    }
+  ]
+}

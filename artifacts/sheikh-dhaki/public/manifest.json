@@ -37,6 +37,7 @@
       "short_name": "سِيغْمَا Σ",
       "tag": "sigma-widget",
       "url": "/",
+      "ms_ac_template": "/widget-template.json",
       "icons": [{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }],
       "screenshots": [{ "src": "/screenshot-narrow.jpg", "sizes": "390x844", "label": "سِيغْمَا" }],
       "description": "مصحح رياضيات البكالوريا"

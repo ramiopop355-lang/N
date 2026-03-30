@@ -1,0 +1,11 @@
+{
+  "web_apps": [
+    {
+      "manifest": "https://sigmaaidzbac.replit.app/manifest.json",
+      "details": {
+        "paths": ["/*"],
+        "exclude_paths": []
+      }
+    }
+  ]
+}
