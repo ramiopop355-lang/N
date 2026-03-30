@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth, getDeviceId, getDeviceName } from "@/context/AuthContext";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -108,10 +108,14 @@ export default function Login() {
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
 
-  const { login, token: authToken, updateUser, user } = useAuth();
+  const { login, token: authToken, updateUser, user, isLoggedIn } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { isDark, toggle } = useDarkModeToggle();
+
+  useEffect(() => {
+    if (isLoggedIn) setLocation("/");
+  }, [isLoggedIn, setLocation]);
 
   const handleLogin = async () => {
     if (!loginUsername.trim() || !loginPassword) {
