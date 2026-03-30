@@ -17,9 +17,22 @@
   "prefer_related_applications": false,
   "related_applications": [],
   "scope_extensions": [],
-  "widgets": [],
-  "edge_side_panel": {},
-  "note_taking": {},
+  "note_taking": {
+    "new_note_url": "/"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "widgets": [
+    {
+      "name": "سِيغْمَا",
+      "tag": "sigma-widget",
+      "url": "/",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }],
+      "screenshots": [{ "src": "/screenshot-narrow.jpg", "sizes": "390x844", "label": "سِيغْمَا" }],
+      "description": "مصحح رياضيات البكالوريا"
+    }
+  ],
   "launch_handler": {
     "client_mode": ["focus-existing", "auto"]
   },
