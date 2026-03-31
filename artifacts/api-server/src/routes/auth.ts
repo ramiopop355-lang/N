@@ -316,31 +316,14 @@ async function verifyPaymentReceipt(
     confidence: data.confidence,
   });
 
-  // ── 4. التحقق من تكرار رقم العملية ──────────────────────────────────
-  if (data.transactionId) {
-    const txnKey = `receipt:txn:${data.transactionId}`;
-    const existingTxn = await db.get(txnKey);
-    if (existingTxn.ok && existingTxn.value) {
-      return {
-        valid: false,
-        reason: `رقم العملية ${data.transactionId} استُخدم مسبقاً لتفعيل حساب آخر`,
-        code: "DUPLICATE_TXN",
-        data,
-      };
-    }
-  }
-
-  // ── 5. تطبيق منطق التحقق حسب المستوى ────────────────────────────────
+  // ── 4. تطبيق منطق التحقق حسب المستوى ────────────────────────────────
   const result = applyVerificationLogic(data, level);
   result.data = data;
 
-  // ── 6. إذا قُبل → حفظ الـ hash ورقم العملية لمنع إعادة الاستخدام ───
+  // ── 5. إذا قُبل → حفظ الـ hash فقط لمنع إعادة استخدام نفس الصورة ──
   if (result.valid) {
     const meta = { at: new Date().toISOString(), amount: data.amount, level };
     await db.set(hashKey, JSON.stringify(meta));
-    if (data.transactionId) {
-      await db.set(`receipt:txn:${data.transactionId}`, JSON.stringify(meta));
-    }
   }
 
   return result;
