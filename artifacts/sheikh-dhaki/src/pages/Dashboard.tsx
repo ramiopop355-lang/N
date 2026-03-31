@@ -843,7 +843,15 @@ export default function Dashboard() {
         }
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "حدث خطأ أثناء التقييم";
+      const raw = err instanceof Error ? err.message : "";
+      const isNetworkErr =
+        raw === "Failed to fetch" ||
+        raw.includes("NetworkError") ||
+        raw.includes("network") ||
+        raw.includes("fetch");
+      const msg = isNetworkErr
+        ? "انقطع الاتصال أثناء التصحيح — تحقق من الإنترنت وأعد المحاولة"
+        : raw || "حدث خطأ أثناء التقييم";
       toast({ title: "خطأ في التقييم", description: msg, variant: "destructive" });
       setStreamingText("");
     } finally {
