@@ -743,6 +743,9 @@ export default function Dashboard() {
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: "خطأ غير معروف" }));
         if (err.code === "TRIAL_EXHAUSTED") {
+          // مزامنة العداد مع الخادم — نضع الحد الأقصى حتى لو كان الجهاز مختلفاً
+          setTrialUsed(TRIAL_MAX);
+          localStorage.setItem(TRIAL_KEY, String(TRIAL_MAX));
           setShowPayment(true);
           return;
         }
@@ -1315,7 +1318,6 @@ export default function Dashboard() {
                       )}
                       <div className="flex-1 p-6 pt-4">
                         <MarkdownResult text={item.evaluation} />
-                        <DailyVerse />
                       </div>
                     </div>
                   </motion.div>

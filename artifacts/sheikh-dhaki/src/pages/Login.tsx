@@ -238,13 +238,6 @@ export default function Login() {
           updateUser(data.token, data.user);
           setUploaded(true);
           toast({ title: "🎉 تم تفعيل حسابك!", description: "تم التحقق من وصل CCP. مبروك!" });
-        } else if (data.code === "INVALID_CCP_RECEIPT") {
-          toast({
-            title: "الوصل غير صالح",
-            description: data.reason ?? "تأكد أن الصورة هي وصل تأكيد دفع CCP حقيقي من بريد الجزائر.",
-            variant: "destructive",
-            duration: 7000,
-          });
         } else {
           toast({ title: "خطأ في التفعيل", description: data.error ?? "حاول مجدداً", variant: "destructive" });
         }
