@@ -454,6 +454,15 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
     const user = await getUser(payload.username);
     if (!user) return res.status(404).json({ error: "الحساب غير موجود" });
 
+    if (user.activated) {
+      const newToken = jwt.sign(
+        { username: user.username, phone: user.phone, activated: true },
+        JWT_SECRET,
+        { expiresIn: "30d" }
+      );
+      return res.json({ success: true, message: "حسابك مفعّل بالفعل", token: newToken, user: { username: user.username, phone: user.phone, activated: true } });
+    }
+
     if (!req.file) {
       return res.status(400).json({ error: "يجب إرفاق صورة الوصل للتفعيل" });
     }
