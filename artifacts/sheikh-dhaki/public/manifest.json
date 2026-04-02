@@ -99,7 +99,21 @@
       "sizes": "390x844",
       "type": "image/jpeg",
       "form_factor": "narrow",
-      "label": "سِيغْمَا على الجوال"
+      "label": "صفحة تسجيل الدخول"
+    },
+    {
+      "src": "/screenshot-dashboard.jpg",
+      "sizes": "390x844",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "لوحة التصحيح"
+    },
+    {
+      "src": "/screenshot-result.jpg",
+      "sizes": "390x844",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "نتيجة التصحيح"
     },
     {
       "src": "/screenshot-wide.jpg",
