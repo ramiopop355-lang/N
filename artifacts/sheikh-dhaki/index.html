@@ -2,19 +2,24 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>سِيغْمَا Σ — مصحح رياضيات البكالوريا</title>
-    <meta name="description" content="مصحح رياضيات البكالوريا الجزائرية بالذكاء الاصطناعي — منهجية وزارة التربية 2026" />
+    <meta name="description" content="مصحح رياضيات البكالوريا الجزائرية 2026 بالذكاء الاصطناعي" />
     <meta name="theme-color" content="#6366f1" />
 
-    <!-- تعطيل التثبيت على iOS -->
-    <meta name="apple-mobile-web-app-capable" content="no" />
-    <meta name="mobile-web-app-capable" content="no" />
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="سيغما" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- Android PWA -->
+    <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- أيقونة المتصفح فقط (بدون apple-touch-icon) -->
+    <!-- أيقونة المتصفح -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!-- Open Graph -->
@@ -27,6 +32,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+      /* Safe-area custom properties for env() support */
+      :root {
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-left: env(safe-area-inset-left, 0px);
+        --safe-right: env(safe-area-inset-right, 0px);
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

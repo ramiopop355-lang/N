@@ -583,7 +583,7 @@ export default function Login() {
               </div>
 
               {/* ── المحتوى ── */}
-              <div className="px-4 pb-6">
+              <div className="px-4" style={{ paddingBottom: "calc(1.5rem + var(--safe-bottom))" }}>
                 <AnimatePresence mode="wait">
 
                   {/* ════ الخطوة 1 ════ */}

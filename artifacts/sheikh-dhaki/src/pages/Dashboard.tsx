@@ -848,6 +848,9 @@ export default function Dashboard() {
                 setStreamingText(pendingTextRef.current);
                 if (boardRef.current) {
                   boardRef.current.scrollTop = boardRef.current.scrollHeight;
+                  if (window.innerWidth < 768) {
+                    boardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
                 }
                 rafRef.current = null;
               });
@@ -933,10 +936,10 @@ export default function Dashboard() {
   const canSubmit = !!exerciseFile && (solveMode || !!attemptFile) && (isActivated || !trialExpired);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
-      <div className="flex flex-col md:flex-row flex-1 min-h-0">
+    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-x-hidden">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 md:overflow-hidden" style={{ minHeight: "100dvh" }}>
       {/* SIDEBAR */}
-      <aside className="w-full md:w-80 lg:w-96 bg-card border-l border-border/60 flex flex-col shrink-0 overflow-y-auto pb-16 md:pb-16" style={{ boxShadow: "4px 0 40px -8px hsl(var(--primary)/0.18), 0 0 0 1px hsl(var(--border)/0.8)" }}>
+      <aside className="w-full md:w-80 lg:w-96 bg-card border-l border-border/60 flex flex-col shrink-0 overflow-y-auto max-h-[52vh] md:max-h-none" style={{ boxShadow: "4px 0 40px -8px hsl(var(--primary)/0.18), 0 0 0 1px hsl(var(--border)/0.8)", paddingBottom: "calc(1rem + var(--safe-bottom))" }}>
         <div className="p-6 flex-1 flex flex-col gap-5">
           {/* Header */}
           <div
@@ -1236,7 +1239,7 @@ export default function Dashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main ref={boardRef} className="flex-1 p-6 pb-20 overflow-y-auto bg-muted/20">
+      <main ref={boardRef} className="flex-1 p-6 overflow-y-auto bg-muted/20" style={{ paddingBottom: "calc(5rem + var(--safe-bottom))" }}>
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1
