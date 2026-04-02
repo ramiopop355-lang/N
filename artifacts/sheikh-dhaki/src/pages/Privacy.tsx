@@ -83,6 +83,12 @@ export default function Privacy() {
           Privacy Policy — سِيغْمَا Σ &nbsp;|&nbsp; آخر تحديث: مارس 2026
         </p>
 
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
+          <p className="text-sm text-foreground/80 leading-relaxed">
+            <strong className="text-foreground">تنبيه:</strong> سِيغْمَا أداة تعليمية مستقلة.{" "}
+            <strong className="text-amber-400">غير رسمية وغير مرتبطة بوزارة التربية الوطنية الجزائرية.</strong>
+          </p>
+        </div>
         <p className="text-sm text-foreground/80 leading-relaxed mb-8 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
           تصف هذه السياسة كيفية جمع واستخدام وحماية بياناتك عند استخدام تطبيق <strong className="text-foreground">سِيغْمَا</strong> لتصحيح رياضيات البكالوريا الجزائرية.
         </p>

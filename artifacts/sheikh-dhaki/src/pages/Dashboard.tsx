@@ -1545,6 +1545,13 @@ export default function Dashboard() {
           >
             سياسة الخصوصية
           </a>
+          <span className="text-muted-foreground/40 text-xs">|</span>
+          <a
+            href="/terms"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            شروط الاستخدام
+          </a>
         </div>
       </footer>
     </div>

@@ -301,7 +301,7 @@ export default function Login() {
               <h1 className="text-2xl font-black text-foreground tracking-tight mb-1">سِيغْمَا</h1>
               <div className="space-y-0.5">
                 <p className="text-xs font-semibold text-primary/80">مصحح رياضيات البكالوريا بالذكاء الاصطناعي</p>
-                <p className="text-xs text-muted-foreground">منهجية وزارة التربية الجزائرية · بكالوريا 2026</p>
+                <p className="text-xs text-muted-foreground">متوافق مع منهاج البكالوريا الجزائرية · 2026 · غير رسمي</p>
               </div>
             </motion.div>
           </div>
@@ -486,11 +486,15 @@ export default function Login() {
 
           {/* Footer */}
           <div className="border-t border-border px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
                 <span className="text-xs font-black text-white" style={{ fontFamily: "serif" }}>Σ</span>
               </div>
-              <p className="text-xs text-muted-foreground">سِيغْمَا © 2026 — جميع الحقوق محفوظة</p>
+              <p className="text-xs text-muted-foreground">سِيغْمَا © 2026</p>
+              <span className="text-muted-foreground/40 text-xs">·</span>
+              <a href="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors">خصوصية</a>
+              <span className="text-muted-foreground/40 text-xs">·</span>
+              <a href="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">شروط الاستخدام</a>
             </div>
             <button
               onClick={toggle}
