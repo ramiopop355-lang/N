@@ -1385,6 +1385,7 @@ export default function Dashboard() {
                       )}
                       <div className="flex-1 p-6 pt-4">
                         <MarkdownResult text={item.evaluation} />
+                        <DailyVerse />
                       </div>
                     </div>
                   </motion.div>
