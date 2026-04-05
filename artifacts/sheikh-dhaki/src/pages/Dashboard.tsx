@@ -524,8 +524,8 @@ export default function Dashboard() {
   const { isDark, toggle } = useDarkModeToggle();
   const daysLeft = Math.max(0, differenceInDays(BAC_DATE, new Date()));
   const trialRemaining = Math.max(0, TRIAL_MAX - trialUsed);
-  const isActivated = true; // OPEN_ACCESS — كل المستخدمين مفعّلون
-  const trialExpired = false;
+  const isActivated = user?.activated === true;
+  const trialExpired = !isActivated && trialUsed >= TRIAL_MAX;
 
   useEffect(() => {
     historyRef.current = history;
