@@ -341,7 +341,7 @@ async function callOpenRouterStream(
     const stream = await withTimeout(
       client.chat.completions.create({
         model: "google/gemini-2.5-flash",
-        temperature: 0.2,
+        temperature: 0,
         max_tokens: 8192,
         stream: true,
         messages: [
@@ -942,7 +942,7 @@ ${mathjsVerification ? `\n**[نتائج التحقق الحسابي التلقا
               model: "gemini-2.5-flash",
               systemInstruction: SYSTEM_PROMPT,
               generationConfig: {
-                temperature: 0.2,
+                temperature: 0,
                 maxOutputTokens: 8192,
                 // @ts-ignore
                 thinkingConfig: { thinkingBudget: 3000 },
