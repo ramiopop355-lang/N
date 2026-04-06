@@ -427,6 +427,12 @@ type ImageUploadZoneProps = {
 const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, onClear }: ImageUploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!file && inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, [file]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const f = e.dataTransfer.files[0];
