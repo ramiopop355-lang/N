@@ -345,7 +345,6 @@ const upload = multer({
 const JWT_SECRET = process.env["JWT_SECRET"];
 if (!JWT_SECRET) throw new Error("[STARTUP] JWT_SECRET environment variable is not set — server cannot start securely");
 const SALT_ROUNDS = 10;
-const MAX_DEVICES = 3;
 
 interface DeviceInfo {
   id: string;
@@ -562,13 +561,6 @@ router.post("/auth/login", async (req, res) => {
     if (deviceId) {
       const alreadyRegistered = devices.some((d) => d.id === deviceId);
       if (!alreadyRegistered) {
-        if (devices.length >= MAX_DEVICES) {
-          return res.status(403).json({
-            error: `تم تجاوز الحد الأقصى للأجهزة (${MAX_DEVICES} أجهزة). احذف جهازاً قديماً من إعدادات حسابك.`,
-            code: "DEVICE_LIMIT_REACHED",
-            deviceCount: devices.length,
-          });
-        }
         devices.push({
           id: deviceId,
           name: deviceName ?? "جهاز غير معروف",
@@ -618,7 +610,7 @@ router.get("/auth/devices", async (req, res) => {
       registeredAt: d.registeredAt,
     }));
 
-    return res.json({ devices, max: MAX_DEVICES });
+    return res.json({ devices });
   } catch (err) {
     console.error("Devices error:", err);
     return res.status(500).json({ error: "خطأ في الخادم" });

@@ -115,9 +115,7 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.code === "DEVICE_LIMIT_REACHED") {
-          toast({ title: "حد الأجهزة", description: data.error, variant: "destructive", duration: 6000 });
-        } else {
+        {
           toast({
             title: "فشل الدخول",
             description: (data.error ?? "خطأ غير معروف") + (res.status === 401 ? " — إذا لم تُسجِّل بعد، انقر على تبويب «تسجيل»" : ""),
