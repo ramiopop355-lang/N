@@ -3,10 +3,8 @@ import multer from "multer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { evaluate } from "mathjs";
 import OpenAI from "openai";
-import Database from "@replit/database";
+import { db } from "../lib/db";
 import jwt from "jsonwebtoken";
-
-const db = new Database();
 
 // يجب أن تكون متغير البيئة موجوداً — نرفض التشغيل بدونه
 const JWT_SECRET = process.env["JWT_SECRET"];

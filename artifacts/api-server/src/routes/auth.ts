@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import Database from "@replit/database";
+import { db } from "../lib/db";
 import multer from "multer";
 import https from "https";
 import crypto from "crypto";
@@ -253,7 +253,6 @@ function callGeminiDirect(apiKey: string, base64Image: string, mimeType: string,
 async function verifyPaymentReceipt(
   imageBuffer: Buffer,
   mimeType: string,
-  db: Database,
   level: SecurityLevel = SECURITY_LEVEL
 ): Promise<VerificationResult> {
   const imageHash = hashImage(imageBuffer);
@@ -331,7 +330,6 @@ async function verifyPaymentReceipt(
 
 // ── Express Router ────────────────────────────────────────────────────
 const router: IRouter = Router();
-const db = new Database();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -471,7 +469,7 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
     console.info(`[ACTIVATE] ${user.username} — طريقة الدفع: ${paymentMethod} — مستوى الأمان: ${SECURITY_LEVEL}`);
 
     // ── التحقق الشامل من الوصل (يعمل لـ CCP و BaridiMob معاً) ─────────
-    const verification = await verifyPaymentReceipt(req.file.buffer, req.file.mimetype, db, SECURITY_LEVEL);
+    const verification = await verifyPaymentReceipt(req.file.buffer, req.file.mimetype, SECURITY_LEVEL);
 
     if (!verification.valid) {
       const arabicCode: Record<string, string> = {

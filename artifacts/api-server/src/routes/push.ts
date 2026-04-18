@@ -1,9 +1,8 @@
 import { Router, type IRouter } from "express";
 import webpush from "web-push";
-import Database from "@replit/database";
+import { db } from "../lib/db";
 
 const router: IRouter = Router();
-const db = new Database();
 
 webpush.setVapidDetails(
   process.env["VAPID_EMAIL"] ?? "mailto:sigma@bac.dz",

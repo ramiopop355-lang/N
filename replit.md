@@ -117,6 +117,27 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 ### رقم RIP (مشترك بين بريدي موب و CCP)
 - `00799999002789880450` — نفس الرقم يُعرض لكلا طريقتَي الدفع في `Login.tsx` و `Dashboard.tsx`
 
+## Vercel Deployment
+
+The project is configured for Vercel deployment via `vercel.json` at the root.
+
+### Architecture on Vercel
+- **Frontend**: `artifacts/sheikh-dhaki` is built with `pnpm --filter @workspace/sheikh-dhaki build`, output at `artifacts/sheikh-dhaki/dist/public`.
+- **API**: `api/index.ts` at root exports the Express app as a Vercel serverless function. All `/api/*` requests are rewritten to this function.
+- **Database**: Upstash Redis replaces `@replit/database`. The adapter is at `artifacts/api-server/src/lib/db.ts`.
+
+### Required Vercel Environment Variables
+| Variable | Description |
+|---|---|
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL (from Upstash dashboard) |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
+| `JWT_SECRET` | Secret for JWT signing |
+| `GEMINI_API_KEY` | Google Gemini API key (comma-separated for rotation) |
+| `OPENROUTER_API_KEY` | OpenRouter API key (for OCR fallback) |
+| `VAPID_PUBLIC_KEY` | Web push VAPID public key |
+| `VAPID_PRIVATE_KEY` | Web push VAPID private key |
+| `VAPID_EMAIL` | Web push VAPID email |
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
