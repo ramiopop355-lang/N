@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/sheikh-dhaki run build && pnpm --filter @workspace/api-server run build
-    startCommand: pnpm --filter @workspace/api-server run start
+    startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -14,6 +14,8 @@ services:
         value: production
       - key: PNPM_VERSION
         value: "10.26.1"
+      - key: STATIC_DIR
+        value: /opt/render/project/src/artifacts/sheikh-dhaki/dist/public
       - key: JWT_SECRET
         sync: false
       - key: UPSTASH_REDIS_REST_URL
