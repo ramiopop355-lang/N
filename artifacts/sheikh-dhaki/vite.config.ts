@@ -5,36 +5,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const isReplit = !!process.env["REPL_ID"];
 const port = Number(process.env["PORT"] ?? 5173);
 const basePath = process.env["BASE_PATH"] ?? "/";
-
-const replitPlugins: ReturnType<typeof react>[] = [];
-
-if (isReplit && process.env["NODE_ENV"] !== "production") {
-  try {
-    const { default: runtimeErrorOverlay } = await import("@replit/vite-plugin-runtime-error-modal");
-    replitPlugins.push(runtimeErrorOverlay());
-  } catch { /* not available outside Replit */ }
-
-  try {
-    const { cartographer } = await import("@replit/vite-plugin-cartographer");
-    replitPlugins.push(cartographer({ root: path.resolve(__dirname, "..") }) as ReturnType<typeof react>);
-  } catch { /* not available outside Replit */ }
-
-  try {
-    const { devBanner } = await import("@replit/vite-plugin-dev-banner");
-    replitPlugins.push(devBanner() as ReturnType<typeof react>);
-  } catch { /* not available outside Replit */ }
-}
 
 export default defineConfig({
   base: basePath,
   plugins: [
     react(),
     tailwindcss(),
-    ...replitPlugins,
   ],
   resolve: {
     alias: {
