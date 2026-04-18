@@ -3,6 +3,8 @@ import cors from "cors";
 import compression from "compression";
 import pinoHttp from "pino-http";
 import multer from "multer";
+import path from "node:path";
+import fs from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -33,6 +35,38 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+// ── خدمة ملفات الواجهة الأمامية في الإنتاج (Render وغيره) ──────────────
+const staticDir =
+  process.env["STATIC_DIR"] ||
+  path.join(process.cwd(), "artifacts/sheikh-dhaki/dist/public");
+
+if (fs.existsSync(staticDir)) {
+  logger.info({ staticDir }, "Serving static frontend files");
+  app.use(
+    express.static(staticDir, {
+      maxAge: "1y",
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith("index.html") || filePath.endsWith("sw.js")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
+    }),
+  );
+
+  // SPA fallback — يُرسل index.html لأي مسار غير API
+  app.get(/^\/(?!api).*/, (_req: Request, res: Response, next: NextFunction) => {
+    const indexPath = path.join(staticDir, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      next();
+    }
+  });
+} else {
+  logger.warn({ staticDir }, "Static directory not found — frontend will not be served");
+}
 
 // ── معالج الأخطاء الشامل — يُرجع JSON دائماً ──────────────────────────
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
