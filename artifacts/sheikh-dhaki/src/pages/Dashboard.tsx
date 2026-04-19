@@ -416,6 +416,43 @@ const CopyButton = React.memo(function CopyButton({ text }: { text: string }) {
   );
 });
 
+type UploadAccent = "indigo" | "violet";
+
+const ACCENT_PALETTE: Record<UploadAccent, {
+  label: string;
+  iconBg: string;
+  iconColor: string;
+  borderIdle: string;
+  borderHover: string;
+  bgIdle: string;
+  bgHover: string;
+  ring: string;
+  shadow: string;
+}> = {
+  indigo: {
+    label: "text-indigo-700 dark:text-indigo-300",
+    iconBg: "linear-gradient(135deg, #6366f1, #4f46e5)",
+    iconColor: "#fff",
+    borderIdle: "rgba(99,102,241,0.35)",
+    borderHover: "rgba(99,102,241,0.70)",
+    bgIdle: "linear-gradient(135deg, rgba(99,102,241,0.06), rgba(79,70,229,0.03))",
+    bgHover: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(79,70,229,0.06))",
+    ring: "rgba(99,102,241,0.18)",
+    shadow: "0 4px 16px -6px rgba(99,102,241,0.30)",
+  },
+  violet: {
+    label: "text-fuchsia-700 dark:text-fuchsia-300",
+    iconBg: "linear-gradient(135deg, #c026d3, #9333ea)",
+    iconColor: "#fff",
+    borderIdle: "rgba(192,38,211,0.35)",
+    borderHover: "rgba(192,38,211,0.70)",
+    bgIdle: "linear-gradient(135deg, rgba(192,38,211,0.06), rgba(147,51,234,0.03))",
+    bgHover: "linear-gradient(135deg, rgba(192,38,211,0.12), rgba(147,51,234,0.06))",
+    ring: "rgba(192,38,211,0.18)",
+    shadow: "0 4px 16px -6px rgba(192,38,211,0.30)",
+  },
+};
+
 type ImageUploadZoneProps = {
   label: string;
   icon: React.ReactNode;
@@ -424,10 +461,13 @@ type ImageUploadZoneProps = {
   previewUrl: string | null;
   onFileChange: (f: File) => void;
   onClear: () => void;
+  accent?: UploadAccent;
 };
 
-const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, onClear }: ImageUploadZoneProps) {
+const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, onClear, accent = "indigo" }: ImageUploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const palette = ACCENT_PALETTE[accent];
+  const [hover, setHover] = useState(false);
 
   useEffect(() => {
     if (!file && inputRef.current) {
@@ -445,7 +485,7 @@ const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint,
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+      <label className={`text-xs font-bold flex items-center gap-1.5 ${palette.label}`}>
         {icon}
         {label}
       </label>
@@ -462,16 +502,33 @@ const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint,
           onClick={() => inputRef.current?.click()}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="w-full border-2 border-dashed border-border hover:border-primary/60 bg-muted/30 hover:bg-primary/5 transition-all rounded-xl p-4 flex flex-col items-center gap-1.5 group"
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          className="w-full transition-all rounded-2xl p-4 flex flex-col items-center gap-1.5 group"
+          style={{
+            background: hover ? palette.bgHover : palette.bgIdle,
+            border: `2px dashed ${hover ? palette.borderHover : palette.borderIdle}`,
+            boxShadow: hover ? palette.shadow : `inset 0 0 0 1px ${palette.ring}`,
+          }}
         >
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Upload className="w-4 h-4 text-primary" />
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"
+            style={{ background: palette.iconBg, boxShadow: palette.shadow }}
+          >
+            <Upload className="w-4 h-4" style={{ color: palette.iconColor }} />
           </div>
-          <span className="text-xs font-semibold text-foreground">اختر صورة أو اسحبها</span>
-          <span className="text-xs text-muted-foreground">{hint} · JPG, PNG, WEBP</span>
+          <span className="text-xs font-bold text-foreground">اختر صورة أو اسحبها</span>
+          <span className="text-[11px] text-muted-foreground">{hint} · JPG, PNG, WEBP</span>
         </button>
       ) : (
-        <div className="relative rounded-xl overflow-hidden border border-border group">
+        <div
+          className="relative rounded-2xl overflow-hidden group"
+          style={{
+            border: `2px solid ${palette.borderIdle}`,
+            boxShadow: palette.shadow,
+            background: palette.bgIdle,
+          }}
+        >
           <img src={previewUrl} alt="Preview" className="w-full h-36 object-contain bg-muted/30" />
           <div className="absolute inset-0 bg-background/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
             <button
@@ -1202,24 +1259,26 @@ export default function Dashboard() {
           {/* Exercise Upload */}
           <ImageUploadZone
             label="صورة التمرين"
-            icon={<FileText className="w-3.5 h-3.5 text-primary" />}
+            icon={<FileText className="w-3.5 h-3.5" />}
             hint="نص السؤال / الوثيقة"
             file={exerciseFile}
             previewUrl={exercisePreviewUrl}
             onFileChange={setExercise}
             onClear={clearExercise}
+            accent="indigo"
           />
 
           {/* Attempt Upload — مخفي في وضع الحل الكامل */}
           {!solveMode && (
             <ImageUploadZone
               label="صورة محاولتك"
-              icon={<PenLine className="w-3.5 h-3.5 text-accent" />}
+              icon={<PenLine className="w-3.5 h-3.5" />}
               hint="ما كتبته بخط يدك"
               file={attemptFile}
               previewUrl={attemptPreviewUrl}
               onFileChange={setAttempt}
               onClear={clearAttempt}
+              accent="violet"
             />
           )}
 
@@ -1288,20 +1347,53 @@ export default function Dashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main ref={boardRef} className="flex-1 p-6 overflow-y-auto bg-muted/20" style={{ paddingBottom: "calc(5rem + var(--safe-bottom))" }}>
+      <main ref={boardRef} className="flex-1 p-6 overflow-y-auto" style={{
+        paddingBottom: "calc(5rem + var(--safe-bottom))",
+        background: "linear-gradient(135deg, hsl(var(--muted)/0.4), hsl(var(--background)))",
+      }}>
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1
-              className="text-xl font-black"
-              style={{ background: "linear-gradient(135deg, hsl(var(--foreground)) 30%, hsl(var(--primary)))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
-            >السبورة الإلكترونية</h1>
+          {/* Wood-framed chalkboard heading */}
+          <div
+            className="mb-6 rounded-2xl p-3 flex items-center justify-between gap-3"
+            style={{
+              background: "linear-gradient(135deg, #6b3410 0%, #8b4513 25%, #a0522d 50%, #8b4513 75%, #6b3410 100%)",
+              boxShadow: "0 6px 20px -8px rgba(101,52,16,0.50), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.25)",
+            }}
+          >
+            <div
+              className="flex-1 rounded-xl px-5 py-3 flex items-center gap-3"
+              style={{
+                background: "linear-gradient(180deg, #1a3a2e 0%, #14302a 100%)",
+                boxShadow: "inset 0 2px 6px rgba(0,0,0,0.45), inset 0 -1px 0 rgba(255,255,255,0.04)",
+                border: "1px solid rgba(0,0,0,0.35)",
+              }}
+            >
+              <span className="text-xl">🖍️</span>
+              <h1
+                className="text-lg sm:text-xl font-black tracking-wide"
+                style={{
+                  color: "#f8f9fa",
+                  fontFamily: "'Caveat', 'Comic Sans MS', cursive",
+                  textShadow: "0 1px 0 rgba(255,255,255,0.18), 0 0 12px rgba(255,255,255,0.10)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                السبورة الإلكترونية
+              </h1>
+              <span className="text-base mr-auto opacity-70">✨</span>
+            </div>
             {history.length > 0 && (
               <button
                 onClick={handleClearHistory}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                className="flex items-center gap-1.5 text-xs font-bold text-amber-50 hover:text-white px-3 py-2 rounded-lg transition-all"
+                style={{
+                  background: "rgba(0,0,0,0.25)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                }}
+                title="مسح كل السجلّ"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                مسح الكل
+                <span className="hidden sm:inline">مسح</span>
               </button>
             )}
           </div>
@@ -1361,23 +1453,79 @@ export default function Dashboard() {
 
           {/* History */}
           {!streamingText && history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div
+              className="relative rounded-2xl overflow-hidden p-3"
+              style={{
+                background: "linear-gradient(135deg, #6b3410 0%, #8b4513 50%, #6b3410 100%)",
+                boxShadow: "0 12px 32px -12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18)",
+              }}
+            >
               <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center mb-5"
+                className="relative rounded-xl py-16 px-6 flex flex-col items-center text-center overflow-hidden"
                 style={{
-                  background: "linear-gradient(135deg, rgba(99,102,241,0.14), rgba(139,92,246,0.07))",
-                  border: "1.5px solid rgba(99,102,241,0.18)",
-                  boxShadow: "0 0 40px -8px rgba(99,102,241,0.30), 0 4px 16px -4px rgba(99,102,241,0.15)",
+                  background: "radial-gradient(ellipse at top, #1f4537 0%, #14302a 50%, #0f2620 100%)",
+                  boxShadow: "inset 0 4px 16px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)",
+                  backgroundImage: `radial-gradient(ellipse at top, #1f4537 0%, #14302a 50%, #0f2620 100%),
+                    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 1px, transparent 1.5px),
+                    radial-gradient(circle at 70% 70%, rgba(255,255,255,0.03) 1px, transparent 1.5px),
+                    radial-gradient(circle at 40% 80%, rgba(255,255,255,0.025) 1px, transparent 1.5px)`,
+                  backgroundSize: "100% 100%, 80px 80px, 120px 120px, 60px 60px",
+                  border: "1px solid rgba(0,0,0,0.40)",
                 }}
               >
-                <MessageSquare className="w-10 h-10" style={{ color: "rgba(99,102,241,0.55)" }} />
+                {/* chalk doodles in corners */}
+                <span className="absolute top-3 right-4 opacity-40" style={{ color: "#fef3c7", fontFamily: "'Caveat', cursive", fontSize: "1.5rem", transform: "rotate(-8deg)" }}>∫ Σ</span>
+                <span className="absolute top-4 left-5 opacity-35" style={{ color: "#fce7f3", fontFamily: "'Caveat', cursive", fontSize: "1.25rem", transform: "rotate(6deg)" }}>π · √</span>
+                <span className="absolute bottom-4 right-6 opacity-35" style={{ color: "#dbeafe", fontFamily: "'Caveat', cursive", fontSize: "1.5rem", transform: "rotate(-4deg)" }}>f(x)</span>
+                <span className="absolute bottom-3 left-4 opacity-40" style={{ color: "#fef3c7", fontFamily: "'Caveat', cursive", fontSize: "1.25rem", transform: "rotate(8deg)" }}>x² + y²</span>
+
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    border: "2px dashed rgba(255,255,255,0.25)",
+                    boxShadow: "0 0 24px rgba(255,255,255,0.10)",
+                  }}
+                >
+                  <span className="text-3xl">📝</span>
+                </div>
+                <h3
+                  className="text-2xl mb-3"
+                  style={{
+                    color: "#f8f9fa",
+                    fontFamily: "'Caveat', 'Comic Sans MS', cursive",
+                    fontWeight: 700,
+                    textShadow: "0 1px 0 rgba(255,255,255,0.20), 0 0 18px rgba(255,255,255,0.12)",
+                  }}
+                >
+                  السبورة فارغة
+                </h3>
+                <p
+                  className="text-base max-w-xs"
+                  style={{
+                    color: "rgba(248,249,250,0.78)",
+                    fontFamily: "'Caveat', cursive",
+                    fontWeight: 500,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {solveMode
+                    ? "ارفع صورة التمرين وسيبني سِيغْمَا الحل الكامل لك فوراً ✨"
+                    : "ارفع صورة التمرين وصورة محاولتك وسيقيّم سِيغْمَا إجابتك فوراً ✨"}
+                </p>
+                {/* chalk tray (wood ledge with chalk pieces) */}
+                <div
+                  className="absolute bottom-0 inset-x-0 h-3 flex items-center justify-center gap-3"
+                  style={{
+                    background: "linear-gradient(180deg, rgba(0,0,0,0.40), rgba(0,0,0,0.20))",
+                    borderTop: "1px solid rgba(0,0,0,0.45)",
+                  }}
+                >
+                  <span style={{ width: "20px", height: "5px", background: "#fef3c7", borderRadius: "1px", display: "inline-block", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" }} />
+                  <span style={{ width: "16px", height: "5px", background: "#fecaca", borderRadius: "1px", display: "inline-block", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" }} />
+                  <span style={{ width: "18px", height: "5px", background: "#dbeafe", borderRadius: "1px", display: "inline-block", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" }} />
+                </div>
               </div>
-              <h3 className="text-base font-bold text-foreground mb-2">السبورة فارغة</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                {solveMode
-                  ? "ارفع صورة التمرين وسيبني سِيغْمَا الحل الكامل لك فوراً"
-                  : "ارفع صورة التمرين وصورة محاولتك وسيقيّم سِيغْمَا إجابتك فوراً"}
-              </p>
             </div>
           ) : (
             <div className="space-y-4">
