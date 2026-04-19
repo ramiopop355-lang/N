@@ -278,7 +278,7 @@ export default function Login() {
               <h1 className="text-2xl font-black text-foreground tracking-tight mb-1">سِيغْمَا</h1>
               <div className="space-y-0.5">
                 <p className="text-xs font-semibold text-primary/80">مصحح رياضيات البكالوريا بالذكاء الاصطناعي</p>
-                <p className="text-xs text-muted-foreground">متوافق مع منهاج البكالوريا الجزائرية · 2026 · غير رسمي</p>
+                <p className="text-xs text-muted-foreground">متوافق مع منهاج البكالوريا الجزائرية · 2026</p>
               </div>
             </motion.div>
           </div>
