@@ -455,7 +455,7 @@ const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint,
       <input
         type="file"
         ref={inputRef}
-        accept="image/*"
+        accept="image/png,image/jpeg,image/jpg,image/webp,image/heic,image/heif"
         className="hidden"
         onChange={(e) => { if (e.target.files?.[0]) onFileChange(e.target.files[0]); }}
       />
@@ -1570,7 +1570,7 @@ export default function Dashboard() {
                       ) : (
                         <>
                           <label className={`flex flex-col items-center gap-2.5 border-2 border-dashed rounded-2xl p-5 cursor-pointer transition-all ${isUploading ? "border-primary/40 bg-primary/5" : "border-border hover:border-primary/50 hover:bg-primary/4"}`}>
-                            <input type="file" accept="image/*" className="hidden" onChange={handleActivateUpload} disabled={isUploading} />
+                            <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/heic,image/heif" className="hidden" onChange={handleActivateUpload} disabled={isUploading} />
                             {isUploading ? (
                               <>
                                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
