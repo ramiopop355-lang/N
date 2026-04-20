@@ -27,6 +27,62 @@ const TRIAL_MAX = 3;
 const TRIAL_KEY = "ustad-trial-used";
 const XP_KEY = "sigma-xp";
 const STREAK_KEY = "sigma-streak";
+const HISTORY_PREFIX = "sigma:history:";
+const MAX_HISTORY_ITEMS = 30;
+const THUMB_MAX_PX = 240;
+const THUMB_QUALITY = 0.55;
+
+// ── إنشاء صورة مصغّرة (thumbnail) كـ data URL لحفظها في localStorage ──
+async function fileToThumbnailDataUrl(file: File | null): Promise<string | undefined> {
+  if (!file) return undefined;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const ratio = THUMB_MAX_PX / Math.max(bitmap.width, bitmap.height, 1);
+    const w = Math.max(1, Math.round(bitmap.width * Math.min(ratio, 1)));
+    const h = Math.max(1, Math.round(bitmap.height * Math.min(ratio, 1)));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    return canvas.toDataURL("image/jpeg", THUMB_QUALITY);
+  } catch {
+    return undefined;
+  }
+}
+
+function historyKeyFor(username: string | undefined | null): string {
+  return `${HISTORY_PREFIX}${(username ?? "guest").toLowerCase().trim()}`;
+}
+
+function loadHistoryFromStorage(username: string | undefined | null): HistoryItem[] {
+  try {
+    const raw = localStorage.getItem(historyKeyFor(username));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Omit<HistoryItem, "date"> & { date: string }>;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(item => ({ ...item, date: new Date(item.date) }));
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryToStorage(username: string | undefined | null, items: HistoryItem[]): void {
+  try {
+    const trimmed = items.slice(0, MAX_HISTORY_ITEMS);
+    localStorage.setItem(historyKeyFor(username), JSON.stringify(trimmed));
+  } catch (err) {
+    // تخزين ممتلئ — نُسقط أقدم العناصر
+    try {
+      const minimal = items.slice(0, 10).map(i => ({ ...i, exercisePreview: undefined, attemptPreview: undefined }));
+      localStorage.setItem(historyKeyFor(username), JSON.stringify(minimal));
+    } catch {
+      console.warn("[history] فشل حفظ السجل في التخزين المحلي:", err);
+    }
+  }
+}
 
 // ── ضغط الصور قبل الرفع ─────────────────────────────────────────
 // الهدف: تقليص صور الهاتف (3-10 MB) إلى أقل من 1.2 MB
@@ -551,7 +607,8 @@ const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint,
 });
 
 export default function Dashboard() {
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const { logout, user, token: authToken, updateUser } = useAuth();
+  const [history, setHistory] = useState<HistoryItem[]>(() => loadHistoryFromStorage(user?.username));
   const historyRef = useRef<HistoryItem[]>([]);
   const [selectedShoba, setSelectedShoba] = useState(SHOBAS[0]);
 
@@ -575,7 +632,6 @@ export default function Dashboard() {
   const [xp, setXp] = useState(() => parseInt(localStorage.getItem(XP_KEY) || "0", 10));
   const [streak, setStreak] = useState(() => parseInt(localStorage.getItem(STREAK_KEY) || "0", 10));
 
-  const { logout, user, token: authToken, updateUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -608,11 +664,21 @@ export default function Dashboard() {
     historyRef.current = history;
   }, [history]);
 
+  // ── حفظ السجل في التخزين المحلي عند كل تغيير ─────────────────────
+  useEffect(() => {
+    saveHistoryToStorage(user?.username, history);
+  }, [history, user?.username]);
+
+  // ── إعادة تحميل السجل عند تغيّر المستخدم (تسجيل دخول حساب آخر) ──
+  useEffect(() => {
+    setHistory(loadHistoryFromStorage(user?.username));
+  }, [user?.username]);
+
   useEffect(() => {
     return () => {
       historyRef.current.forEach(item => {
-        if (item.exercisePreview) URL.revokeObjectURL(item.exercisePreview);
-        if (item.attemptPreview) URL.revokeObjectURL(item.attemptPreview);
+        if (item.exercisePreview?.startsWith("blob:")) URL.revokeObjectURL(item.exercisePreview);
+        if (item.attemptPreview?.startsWith("blob:")) URL.revokeObjectURL(item.attemptPreview);
       });
     };
   }, []);
@@ -762,9 +828,10 @@ export default function Dashboard() {
     if (confirm("هل أنت متأكد من مسح جميع التقييمات؟")) {
       setHistory(prev => {
         prev.forEach(item => {
-          if (item.exercisePreview) URL.revokeObjectURL(item.exercisePreview);
-          if (item.attemptPreview)  URL.revokeObjectURL(item.attemptPreview);
+          if (item.exercisePreview?.startsWith("blob:")) URL.revokeObjectURL(item.exercisePreview);
+          if (item.attemptPreview?.startsWith("blob:"))  URL.revokeObjectURL(item.attemptPreview);
         });
+        try { localStorage.removeItem(historyKeyFor(user?.username)); } catch {}
         return [];
       });
       toast({ title: "تم مسح السبورة بنجاح" });
@@ -826,9 +893,12 @@ export default function Dashboard() {
     setIsPending(true);
     setStreamingText("");
 
-    const savedExercisePreview = exerciseFile ? URL.createObjectURL(exerciseFile) : null;
-    const savedAttemptPreview = attemptFile ? URL.createObjectURL(attemptFile) : null;
-    let previewsStoredInHistory = false;
+    // ── إنشاء صور مصغّرة دائمة (data URLs) لحفظها في السجل ─────────
+    // نُحضّرها بالتوازي مع رفع الصور الأصلية للخادم لتوفير الوقت
+    const thumbnailsPromise = Promise.all([
+      fileToThumbnailDataUrl(exerciseFile),
+      fileToThumbnailDataUrl(attemptFile),
+    ]);
 
     try {
       // ── ضغط الصور تلقائياً (صور الهاتف قد تصل 8MB — نُقلّصها لأقل من 1.2MB) ──
@@ -922,15 +992,15 @@ export default function Dashboard() {
             }
             setStreamingText(fullText);
             const id = crypto.randomUUID();
-            previewsStoredInHistory = true;
+            const [exerciseThumb, attemptThumb] = await thumbnailsPromise;
             setHistory(prev => [{
               id,
               evaluation: fullText,
               date: new Date(),
               shoba: selectedShoba,
-              exercisePreview: savedExercisePreview ?? undefined,
-              attemptPreview: savedAttemptPreview ?? undefined,
-            }, ...prev]);
+              exercisePreview: exerciseThumb,
+              attemptPreview: attemptThumb,
+            }, ...prev].slice(0, MAX_HISTORY_ITEMS));
             setStreamingText("");
             clearExercise();
             clearAttempt();
