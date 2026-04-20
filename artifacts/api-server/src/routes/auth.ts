@@ -30,6 +30,16 @@ function nextGeminiKey(): string | null {
   return key ?? null;
 }
 
+// ── حساب المالك (وجهة الدفع) ────────────────────────────────────────
+const OWNER_CCP_ACCOUNT_RAW = process.env["OWNER_CCP_ACCOUNT"] ?? "";
+const OWNER_CCP_NORMALIZED = OWNER_CCP_ACCOUNT_RAW.replace(/\D/g, "");
+if (!OWNER_CCP_NORMALIZED) {
+  console.warn("[STARTUP] OWNER_CCP_ACCOUNT غير مضبوط — التحقق من حساب المستفيد سيُتجاوز");
+}
+
+// نوع الوصل
+type ReceiptType = "BARIDIMOB" | "CCP" | "BANK" | "OTHER" | "UNKNOWN";
+
 // ── بنية بيانات الوصل المستخرجة ─────────────────────────────────────
 interface ReceiptData {
   amount: number | null;        // المبلغ بالدينار
@@ -38,13 +48,32 @@ interface ReceiptData {
   keywords: string[];           // كلمات مفتاحية موجودة
   rawText: string;              // النص الخام من الذكاء الاصطناعي
   confidence: "high" | "low";  // مدى وضوح الصورة
+  receiptType: ReceiptType;     // نوع الوصل
+  recipientAccount: string | null; // رقم الحساب المستفيد (CCP/RIP المستخرج)
 }
 
 interface VerificationResult {
   valid: boolean;
   reason: string;
-  code: "ACCEPTED" | "REJECTED" | "DUPLICATE_TXN" | "DUPLICATE_IMAGE" | "INSUFFICIENT_DATA" | "LOW_AMOUNT";
+  code: "ACCEPTED" | "REJECTED" | "DUPLICATE_TXN" | "DUPLICATE_IMAGE" | "INSUFFICIENT_DATA" | "LOW_AMOUNT" | "WRONG_RECIPIENT" | "OLD_RECEIPT";
   data?: Partial<ReceiptData>;
+}
+
+// ── مقارنة أرقام الحسابات (RIP 20 رقم vs CCP 10–12 رقم) ─────────────
+function accountsMatch(extracted: string | null, owner: string): boolean {
+  if (!extracted || !owner) return false;
+  const e = extracted.replace(/\D/g, "");
+  const o = owner.replace(/\D/g, "");
+  if (e.length < 6 || o.length < 6) return false;
+  if (e === o) return true;
+  // RIP يحتوي عادةً على CCP بداخله — نقبل تطابق فرعي بشرط 8 أرقام على الأقل
+  if (e.length >= 8 && o.includes(e)) return true;
+  if (o.length >= 8 && e.includes(o)) return true;
+  // مقارنة آخر 10 أرقام (الجزء الفعلي من CCP)
+  const eTail = e.slice(-10);
+  const oTail = o.slice(-10);
+  if (eTail.length >= 8 && eTail === oTail) return true;
+  return false;
 }
 
 // ── استخراج hash للصورة (للكشف عن الصور المكررة) ──────────────────
@@ -54,20 +83,37 @@ function hashImage(buffer: Buffer): string {
 
 // ── البرومبت المنظّم لاستخراج بيانات الوصل ──────────────────────────
 function buildExtractionPrompt(): string {
-  return `أنت نظام OCR متخصص في تحليل وصولات الدفع الجزائرية (CCP / BaridiMob / Algérie Poste).
+  return `أنت نظام تحقق احترافي متخصص في تحليل وصولات الدفع الجزائرية (BaridiMob / CCP / Algérie Poste / تحويلات بنكية).
 
-حلّل الصورة المرفقة واستخرج البيانات التالية بدقة:
+مهمتك: استخراج البيانات الحرجة من صورة الوصل بدقة عالية بدون أي تخمين.
 
-1. AMOUNT: المبلغ المدفوع بالدينار الجزائري (رقم فقط، بدون حروف أو رموز). إذا وجدت أرقاماً متعددة اختر المبلغ المنطقي بين 100 و 100000 دج.
-2. TXN_ID: رقم العملية أو المرجع أو رقم الإيصال (يجب أن يكون 6 أرقام أو أكثر). إذا لم يوجد اكتب NONE.
-3. DATE: تاريخ العملية بصيغة YYYY-MM-DD. إذا لم يوجد اكتب NONE.
-4. KEYWORDS: اذكر الكلمات المفتاحية الموجودة في الصورة من هذه القائمة فقط (مفصولة بفاصلة): baridi, poste, ccp, algerie, virement, recharge, موبايل, بريد, تحويل, رصيد, إيداع
-5. CONFIDENCE: هل الصورة واضحة بما يكفي لقراءة البيانات؟ أجب بـ high أو low فقط.
+استخرج هذه الحقول بالضبط:
 
-أجب بهذا التنسيق الحرفي فقط (لا تضف أي شرح):
+1. AMOUNT: المبلغ المدفوع بالدينار الجزائري (رقم فقط، بدون رموز). اختر المبلغ المنطقي بين 100 و 100000 دج. إذا غير واضح اكتب NONE.
+
+2. TXN_ID: رقم العملية / المرجع / N° opération / Référence (6 أرقام أو أكثر). إذا لم يوجد NONE.
+
+3. DATE: تاريخ تنفيذ العملية بصيغة YYYY-MM-DD فقط (حوّل أي تنسيق آخر مثل DD/MM/YYYY). إذا لم يوجد NONE.
+
+4. RECEIPT_TYPE: نوع الوصل، اختر واحداً فقط:
+   - BARIDIMOB: تطبيق Baridi Mob (شاشة هاتف بألوان زرقاء/خضراء، يظهر "Baridi Mob" أو "BaridiMob")
+   - CCP: وصل ورقي من مكتب البريد (CCP، Algérie Poste، ختم بريدي)
+   - BANK: تحويل بنكي من بنك آخر (BNA, BEA, CPA, BADR, AGB, إلخ)
+   - OTHER: شيء آخر (شحن رصيد، فاتورة، إلخ)
+   - UNKNOWN: غير قادر على التحديد
+
+5. RECIPIENT_ACCOUNT: رقم حساب المستفيد / الجهة المستلمة (Bénéficiaire / Compte destinataire / RIP / CCP المستلم). يجب أن يكون من 8 إلى 24 رقماً. هذا الحقل حرج جداً — ابحث عنه بدقة بجانب كلمات مثل "Bénéficiaire", "Vers", "إلى", "المستفيد", "حساب المستلم". إذا لم يوجد بوضوح اكتب NONE. لا تخمّن أبداً.
+
+6. KEYWORDS: اذكر ما يوجد من: baridi, poste, ccp, algerie, virement, recharge, موبايل, بريد, تحويل, رصيد, إيداع (مفصولة بفاصلة، أو NONE).
+
+7. CONFIDENCE: high إذا كانت الصورة واضحة وكل البيانات مقروءة، low إذا كان هناك أي ضبابية أو بيانات ناقصة.
+
+أجب بهذا التنسيق الحرفي فقط — سطر واحد لكل حقل، بدون أي شرح أو تعليق:
 AMOUNT: [رقم أو NONE]
 TXN_ID: [رقم أو NONE]
 DATE: [YYYY-MM-DD أو NONE]
+RECEIPT_TYPE: [BARIDIMOB أو CCP أو BANK أو OTHER أو UNKNOWN]
+RECIPIENT_ACCOUNT: [أرقام الحساب أو NONE]
 KEYWORDS: [قائمة أو NONE]
 CONFIDENCE: [high أو low]`;
 }
@@ -96,7 +142,16 @@ function parseReceiptData(rawText: string): ReceiptData {
   const confRaw = get("CONFIDENCE").toLowerCase();
   const confidence = confRaw === "high" ? "high" : "low";
 
-  return { amount, transactionId, date, keywords, rawText, confidence };
+  const typeRaw = get("RECEIPT_TYPE").toUpperCase();
+  const receiptType: ReceiptType = (
+    typeRaw === "BARIDIMOB" || typeRaw === "CCP" || typeRaw === "BANK" || typeRaw === "OTHER"
+  ) ? typeRaw as ReceiptType : "UNKNOWN";
+
+  const recipientRaw = get("RECIPIENT_ACCOUNT");
+  const recipientDigits = recipientRaw !== "NONE" ? recipientRaw.replace(/\D/g, "") : "";
+  const recipientAccount = recipientDigits.length >= 6 ? recipientDigits : null;
+
+  return { amount, transactionId, date, keywords, rawText, confidence, receiptType, recipientAccount };
 }
 
 // ── منطق التحقق حسب مستوى الأمان ────────────────────────────────────
@@ -104,8 +159,36 @@ function applyVerificationLogic(data: ReceiptData, level: SecurityLevel): Verifi
   const KEYWORDS_POOL = ["baridi", "poste", "ccp", "algerie", "virement", "recharge", "موبايل", "بريد", "تحويل", "رصيد", "إيداع"];
   const hasKeyword = data.keywords.some(k => KEYWORDS_POOL.includes(k));
   const MIN_AMOUNT = 500;
+  const MAX_RECEIPT_AGE_DAYS = 14;
 
-  // التحقق من المبلغ (مشترك بين كل المستويات)
+  // ── 0. التحقق من نوع الوصل ───────────────────────────────────────
+  if (data.receiptType === "OTHER") {
+    return {
+      valid: false,
+      reason: "هذا الوصل لا يبدو وصل دفع (قد يكون شحن رصيد أو فاتورة) — استخدم وصل تحويل من BaridiMob أو CCP",
+      code: "REJECTED",
+    };
+  }
+
+  // ── 1. التحقق من حساب المستفيد (الأهم) ────────────────────────────
+  if (OWNER_CCP_NORMALIZED) {
+    if (!data.recipientAccount) {
+      return {
+        valid: false,
+        reason: "لم يتم العثور على رقم حساب المستفيد في الوصل — تأكّد أن الصورة تُظهر بوضوح حقل 'Bénéficiaire' أو 'المستفيد'",
+        code: "INSUFFICIENT_DATA",
+      };
+    }
+    if (!accountsMatch(data.recipientAccount, OWNER_CCP_NORMALIZED)) {
+      return {
+        valid: false,
+        reason: "هذا الوصل لم يُرسل إلى حسابنا البريدي — تحقّق من رقم CCP/RIP الخاص بنا قبل الدفع",
+        code: "WRONG_RECIPIENT",
+      };
+    }
+  }
+
+  // ── 2. التحقق من المبلغ ──────────────────────────────────────────
   if (data.amount === null) {
     return { valid: false, reason: "لم يتم العثور على مبلغ الدفع في الوصل", code: "INSUFFICIENT_DATA" };
   }
@@ -115,6 +198,28 @@ function applyVerificationLogic(data: ReceiptData, level: SecurityLevel): Verifi
       reason: `المبلغ المكتشف (${data.amount} دج) أقل من الحد الأدنى المطلوب (${MIN_AMOUNT} دج)`,
       code: "LOW_AMOUNT",
     };
+  }
+
+  // ── 3. التحقق من حداثة التاريخ (مشترك) ───────────────────────────
+  if (data.date) {
+    const receiptDate = new Date(data.date);
+    if (!isNaN(receiptDate.getTime())) {
+      const diffDays = (Date.now() - receiptDate.getTime()) / 86400000;
+      if (diffDays > MAX_RECEIPT_AGE_DAYS) {
+        return {
+          valid: false,
+          reason: `تاريخ الوصل (${data.date}) قديم جداً — يجب أن يكون خلال آخر ${MAX_RECEIPT_AGE_DAYS} يوماً`,
+          code: "OLD_RECEIPT",
+        };
+      }
+      if (diffDays < -1) {
+        return {
+          valid: false,
+          reason: `تاريخ الوصل (${data.date}) في المستقبل — تحقّق من الصورة`,
+          code: "REJECTED",
+        };
+      }
+    }
   }
 
   if (level === "normal") {
@@ -496,6 +601,8 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
         LOW_AMOUNT: "المبلغ غير كافٍ",
         INSUFFICIENT_DATA: "بيانات الوصل غير كاملة",
         REJECTED: "الوصل مرفوض",
+        WRONG_RECIPIENT: "الوصل ليس لحسابنا",
+        OLD_RECEIPT: "الوصل قديم",
       };
       console.warn(`[ACTIVATE] ${user.username} — رُفض (${verification.code}): ${verification.reason}`);
       return res.status(400).json({
@@ -532,6 +639,7 @@ router.post("/auth/activate", upload.single("receipt"), async (req, res) => {
         amount: verification.data?.amount,
         transactionId: verification.data?.transactionId,
         date: verification.data?.date,
+        type: verification.data?.receiptType,
       },
     });
   } catch (err) {
