@@ -472,76 +472,96 @@ const ACCENT_PALETTE: Record<UploadAccent, {
   },
 };
 
+const MAX_IMAGES_PER_ZONE = 8;
+
 type ImageUploadZoneProps = {
   label: string;
   icon: React.ReactNode;
   hint: string;
-  file: File | null;
-  previewUrl: string | null;
-  onFileChange: (f: File) => void;
+  files: File[];
+  previewUrls: string[];
+  onFilesAdd: (files: File[]) => void;
+  onRemoveAt: (index: number) => void;
   onClear: () => void;
   accent?: UploadAccent;
 };
 
-const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint, file, previewUrl, onFileChange, onClear, accent = "indigo" }: ImageUploadZoneProps) {
+const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint, files, previewUrls, onFilesAdd, onRemoveAt, onClear, accent = "indigo" }: ImageUploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const zoneRef = useRef<HTMLButtonElement>(null);
   const palette = ACCENT_PALETTE[accent];
   const [hover, setHover] = useState(false);
   const [dragging, setDragging] = useState(false);
 
+  const hasFiles = files.length > 0;
+  const remaining = MAX_IMAGES_PER_ZONE - files.length;
+
   useEffect(() => {
-    if (!file && inputRef.current) {
+    if (!hasFiles && inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [file]);
+  }, [hasFiles]);
 
-  // ── سحب وإفلات ───────────────────────────────────────────────────
+  // ── سحب وإفلات (متعدّد) ─────────────────────────────────────────
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith("image/")) {
-      onFileChange(f);
-    }
-  }, [onFileChange]);
+    const dropped = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+    if (dropped.length > 0) onFilesAdd(dropped);
+  }, [onFilesAdd]);
 
-  // ── لصق من الحافظة (Ctrl+V أو لمس مطوّل → لصق على الهاتف) ────────
+  // ── لصق من الحافظة (يدعم لصق صور متعدّدة دفعة واحدة) ──────────────
   useEffect(() => {
-    if (previewUrl) return;
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
+      const pasted: File[] = [];
       for (const item of Array.from(items)) {
         if (item.type.startsWith("image/")) {
           const f = item.getAsFile();
-          if (f) {
-            e.preventDefault();
-            onFileChange(f);
-            return;
-          }
+          if (f) pasted.push(f);
         }
+      }
+      if (pasted.length > 0) {
+        e.preventDefault();
+        onFilesAdd(pasted);
       }
     };
     const node = zoneRef.current;
     node?.addEventListener("paste", handlePaste as EventListener);
     return () => node?.removeEventListener("paste", handlePaste as EventListener);
-  }, [previewUrl, onFileChange]);
+  }, [onFilesAdd]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []).filter(f => f.type.startsWith("image/"));
+    if (picked.length > 0) onFilesAdd(picked);
+    e.target.value = "";
+  };
 
   return (
     <div className="space-y-1.5">
       <label className={`text-xs font-bold flex items-center gap-1.5 ${palette.label}`}>
         {icon}
         {label}
+        {hasFiles && (
+          <span
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full mr-auto"
+            style={{ background: palette.bgIdle, color: palette.iconColor, border: `1px solid ${palette.borderIdle}` }}
+            data-testid={`image-count-${accent}`}
+          >
+            {files.length}/{MAX_IMAGES_PER_ZONE}
+          </span>
+        )}
       </label>
       <input
         type="file"
         ref={inputRef}
         accept="image/*"
+        multiple
         className="hidden"
-        onChange={(e) => { if (e.target.files?.[0]) onFileChange(e.target.files[0]); }}
+        onChange={handleInputChange}
       />
-      {!previewUrl ? (
+      {!hasFiles ? (
         <button
           ref={zoneRef}
           type="button"
@@ -567,38 +587,81 @@ const ImageUploadZone = React.memo(function ImageUploadZone({ label, icon, hint,
             <Upload className="w-4 h-4" style={{ color: palette.iconColor }} />
           </div>
           <span className="text-xs font-bold text-foreground">
-            {dragging ? "أفلت الصورة هنا" : "اختر صورة، التقطها، أو الصقها"}
+            {dragging ? "أفلت الصور هنا" : "اختر صورة أو عدة صور، التقطها، أو الصقها"}
           </span>
-          <span className="text-[11px] text-muted-foreground">{hint} · JPG, PNG, WEBP, HEIC</span>
+          <span className="text-[11px] text-muted-foreground">{hint} · حتى {MAX_IMAGES_PER_ZONE} صور · JPG, PNG, WEBP, HEIC</span>
         </button>
       ) : (
         <div
-          className="relative rounded-2xl overflow-hidden group"
+          ref={zoneRef as unknown as React.RefObject<HTMLDivElement>}
+          tabIndex={-1}
+          onDrop={handleDrop}
+          onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
+          className="rounded-2xl p-2 transition-all"
           style={{
-            border: `2px solid ${palette.borderIdle}`,
-            boxShadow: palette.shadow,
-            background: palette.bgIdle,
+            border: `2px dashed ${dragging ? palette.borderHover : palette.borderIdle}`,
+            background: dragging ? palette.bgHover : palette.bgIdle,
+            boxShadow: `inset 0 0 0 1px ${palette.ring}`,
           }}
         >
-          <img src={previewUrl} alt="Preview" className="w-full h-36 object-contain bg-muted/30" />
-          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="bg-primary text-primary-foreground p-2 rounded-full hover:scale-110 transition-transform shadow-lg"
-            >
-              <ImageIcon className="w-3.5 h-3.5" />
-            </button>
+          <div className="grid grid-cols-3 gap-2">
+            {previewUrls.map((url, idx) => (
+              <div
+                key={`${url}-${idx}`}
+                className="relative rounded-xl overflow-hidden group aspect-square"
+                style={{ border: `1.5px solid ${palette.borderIdle}`, background: "hsl(var(--muted)/0.3)" }}
+                data-testid={`preview-${accent}-${idx}`}
+              >
+                <img src={url} alt={`صورة ${idx + 1}`} className="w-full h-full object-cover" />
+                <div
+                  className="absolute top-1 right-1 bg-background/85 text-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                  style={{ border: `1px solid ${palette.borderIdle}` }}
+                >
+                  {idx + 1}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemoveAt(idx)}
+                  className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:scale-110 shadow-md"
+                  aria-label={`حذف الصورة ${idx + 1}`}
+                  data-testid={`remove-${accent}-${idx}`}
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            {remaining > 0 && (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 text-[10px] font-bold transition-all hover:scale-[1.02]"
+                style={{
+                  border: `2px dashed ${palette.borderIdle}`,
+                  background: palette.bgHover,
+                  color: palette.iconColor,
+                }}
+                data-testid={`add-more-${accent}`}
+              >
+                <Upload className="w-4 h-4" />
+                <span>إضافة</span>
+                <span className="text-[9px] opacity-70">{remaining} متبقّية</span>
+              </button>
+            )}
+          </div>
+          <div className="flex items-center justify-between mt-2 px-1">
+            <span className="text-[11px] text-muted-foreground">
+              {files.length === 1 ? "صورة واحدة" : `${files.length} صور — تُرسَل بالترتيب`}
+            </span>
             <button
               type="button"
               onClick={onClear}
-              className="bg-destructive text-destructive-foreground p-2 rounded-full hover:scale-110 transition-transform shadow-lg"
+              className="text-[11px] font-bold text-destructive hover:underline"
+              data-testid={`clear-all-${accent}`}
             >
-              <XCircle className="w-3.5 h-3.5" />
+              مسح الكل
             </button>
-          </div>
-          <div className="absolute bottom-0 inset-x-0 bg-background/80 text-xs text-center py-1 text-muted-foreground truncate px-2">
-            {file?.name}
           </div>
         </div>
       )}
@@ -612,11 +675,11 @@ export default function Dashboard() {
   const historyRef = useRef<HistoryItem[]>([]);
   const [selectedShoba, setSelectedShoba] = useState(SHOBAS[0]);
 
-  const [exerciseFile, setExerciseFile] = useState<File | null>(null);
-  const [exercisePreviewUrl, setExercisePreviewUrl] = useState<string | null>(null);
+  const [exerciseFiles, setExerciseFiles] = useState<File[]>([]);
+  const [exercisePreviewUrls, setExercisePreviewUrls] = useState<string[]>([]);
 
-  const [attemptFile, setAttemptFile] = useState<File | null>(null);
-  const [attemptPreviewUrl, setAttemptPreviewUrl] = useState<string | null>(null);
+  const [attemptFiles, setAttemptFiles] = useState<File[]>([]);
+  const [attemptPreviewUrls, setAttemptPreviewUrls] = useState<string[]>([]);
 
   const [solveMode, setSolveMode] = useState(false);
   const [notes, setNotes] = useState("");
@@ -685,10 +748,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     return () => {
-      if (exercisePreviewUrl) URL.revokeObjectURL(exercisePreviewUrl);
-      if (attemptPreviewUrl) URL.revokeObjectURL(attemptPreviewUrl);
+      exercisePreviewUrls.forEach(u => URL.revokeObjectURL(u));
+      attemptPreviewUrls.forEach(u => URL.revokeObjectURL(u));
     };
-  }, [exercisePreviewUrl, attemptPreviewUrl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!user?.username) return;
@@ -800,28 +864,49 @@ export default function Dashboard() {
     }
   }, []);
 
-  const setExercise = useCallback((f: File) => {
-    setExercisePreviewUrl(prev => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(f);
+  // ── إضافة صور التمرين (مع احترام الحد الأقصى) ───────────────────
+  const addExerciseFiles = useCallback((added: File[]) => {
+    setExerciseFiles(prev => {
+      const room = MAX_IMAGES_PER_ZONE - prev.length;
+      if (room <= 0) return prev;
+      const accepted = added.slice(0, room);
+      setExercisePreviewUrls(urls => [...urls, ...accepted.map(f => URL.createObjectURL(f))]);
+      return [...prev, ...accepted];
     });
-    setExerciseFile(f);
+  }, []);
+  const removeExerciseAt = useCallback((idx: number) => {
+    setExerciseFiles(prev => prev.filter((_, i) => i !== idx));
+    setExercisePreviewUrls(prev => {
+      const url = prev[idx];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== idx);
+    });
   }, []);
   const clearExercise = useCallback(() => {
-    setExerciseFile(null);
-    setExercisePreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setExerciseFiles([]);
+    setExercisePreviewUrls(prev => { prev.forEach(u => URL.revokeObjectURL(u)); return []; });
   }, []);
 
-  const setAttempt = useCallback((f: File) => {
-    setAttemptPreviewUrl(prev => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(f);
+  const addAttemptFiles = useCallback((added: File[]) => {
+    setAttemptFiles(prev => {
+      const room = MAX_IMAGES_PER_ZONE - prev.length;
+      if (room <= 0) return prev;
+      const accepted = added.slice(0, room);
+      setAttemptPreviewUrls(urls => [...urls, ...accepted.map(f => URL.createObjectURL(f))]);
+      return [...prev, ...accepted];
     });
-    setAttemptFile(f);
+  }, []);
+  const removeAttemptAt = useCallback((idx: number) => {
+    setAttemptFiles(prev => prev.filter((_, i) => i !== idx));
+    setAttemptPreviewUrls(prev => {
+      const url = prev[idx];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== idx);
+    });
   }, []);
   const clearAttempt = useCallback(() => {
-    setAttemptFile(null);
-    setAttemptPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setAttemptFiles([]);
+    setAttemptPreviewUrls(prev => { prev.forEach(u => URL.revokeObjectURL(u)); return []; });
   }, []);
 
   const handleClearHistory = () => {
@@ -881,11 +966,11 @@ export default function Dashboard() {
       setShowPayment(true);
       return;
     }
-    if (!exerciseFile) {
+    if (exerciseFiles.length === 0) {
       toast({ title: "ارفع صورة التمرين أولاً!", variant: "destructive" });
       return;
     }
-    if (!solveMode && !attemptFile) {
+    if (!solveMode && attemptFiles.length === 0) {
       toast({ title: "ارفع صورة محاولتك أولاً!", variant: "destructive" });
       return;
     }
@@ -894,22 +979,24 @@ export default function Dashboard() {
     setStreamingText("");
 
     // ── إنشاء صور مصغّرة دائمة (data URLs) لحفظها في السجل ─────────
-    // نُحضّرها بالتوازي مع رفع الصور الأصلية للخادم لتوفير الوقت
+    // (نأخذ أول صورة من كل مجموعة فقط — تكفي كملخّص بصري للسجل)
+    const firstExercise = exerciseFiles[0] ?? null;
+    const firstAttempt  = attemptFiles[0]  ?? null;
     const thumbnailsPromise = Promise.all([
-      fileToThumbnailDataUrl(exerciseFile),
-      fileToThumbnailDataUrl(attemptFile),
+      fileToThumbnailDataUrl(firstExercise),
+      fileToThumbnailDataUrl(firstAttempt),
     ]);
 
     try {
-      // ── ضغط الصور تلقائياً (صور الهاتف قد تصل 8MB — نُقلّصها لأقل من 1.2MB) ──
-      const [compressedExercise, compressedAttempt] = await Promise.all([
-        compressImage(exerciseFile).catch(() => exerciseFile),
-        attemptFile ? compressImage(attemptFile).catch(() => attemptFile) : Promise.resolve(null),
+      // ── ضغط جميع الصور بالتوازي (صور الهاتف قد تصل 8MB لكل واحدة) ──
+      const [compressedExercises, compressedAttempts] = await Promise.all([
+        Promise.all(exerciseFiles.map(f => compressImage(f).catch(() => f))),
+        solveMode ? Promise.resolve([] as File[]) : Promise.all(attemptFiles.map(f => compressImage(f).catch(() => f))),
       ]);
 
       const formData = new FormData();
-      formData.append("exercise", compressedExercise);
-      if (compressedAttempt) formData.append("attempt", compressedAttempt);
+      for (const f of compressedExercises) formData.append("exercise", f);
+      for (const f of compressedAttempts)  formData.append("attempt",  f);
       formData.append("shoba", selectedShoba);
       formData.append("notes", notes);
       formData.append("mode", solveMode ? "solve" : "correct");
@@ -1052,14 +1139,10 @@ export default function Dashboard() {
       setStreamingText("");
     } finally {
       setIsPending(false);
-      if (!previewsStoredInHistory) {
-        if (savedExercisePreview) URL.revokeObjectURL(savedExercisePreview);
-        if (savedAttemptPreview) URL.revokeObjectURL(savedAttemptPreview);
-      }
     }
   };
 
-  const canSubmit = !!exerciseFile && (solveMode || !!attemptFile) && (isActivated || !trialExpired);
+  const canSubmit = exerciseFiles.length > 0 && (solveMode || attemptFiles.length > 0) && (isActivated || !trialExpired);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-x-hidden">
@@ -1321,27 +1404,29 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Exercise Upload */}
+          {/* Exercise Upload — يدعم عدة صور للتمارين الموزّعة على عدة أوراق */}
           <ImageUploadZone
-            label="صورة التمرين"
+            label="صور التمرين"
             icon={<FileText className="w-3.5 h-3.5" />}
             hint="نص السؤال / الوثيقة"
-            file={exerciseFile}
-            previewUrl={exercisePreviewUrl}
-            onFileChange={setExercise}
+            files={exerciseFiles}
+            previewUrls={exercisePreviewUrls}
+            onFilesAdd={addExerciseFiles}
+            onRemoveAt={removeExerciseAt}
             onClear={clearExercise}
             accent="indigo"
           />
 
-          {/* Attempt Upload — مخفي في وضع الحل الكامل */}
+          {/* Attempt Upload — يدعم عدة صور للحلول الطويلة */}
           {!solveMode && (
             <ImageUploadZone
-              label="صورة محاولتك"
+              label="صور محاولتك"
               icon={<PenLine className="w-3.5 h-3.5" />}
               hint="ما كتبته بخط يدك"
-              file={attemptFile}
-              previewUrl={attemptPreviewUrl}
-              onFileChange={setAttempt}
+              files={attemptFiles}
+              previewUrls={attemptPreviewUrls}
+              onFilesAdd={addAttemptFiles}
+              onRemoveAt={removeAttemptAt}
               onClear={clearAttempt}
               accent="violet"
             />
