@@ -1,0 +1,62 @@
+import easyocr
+import cv2
+import re
+from datetime import datetime, timedelta
+
+# 1. إعداد قارئ النصوص (يدعم العربية والفرنسية)
+reader = easyocr.Reader(['ar', 'fr'])
+
+# قاعدة بيانات وهمية لتخزين الأرقام التسلسلية للوصولات لمنع التكرار
+# في مشروعك الحقيقي، استبدلي هذا بجدول في قاعدة البيانات
+used_receipt_ids = set()
+
+def process_receipt(image_path):
+    # قراءة الصورة واستخراج النص
+    results = reader.readtext(image_path, detail=0)
+    full_text = " ".join(results)
+    
+    print(f"النص المستخرج: {full_text}") # للتأكد من القراءة في الـ Console
+
+    # --- الشرط الأول: استخراج المبلغ والتحقق منه (> 500 دج) ---
+    # نبحث عن أرقام بجانب كلمة Montant أو مبلغ
+    amounts = re.findall(r'(\d+(?:\.\d+)?)', full_text)
+    max_amount = max([float(a) for a in amounts]) if amounts else 0
+    
+    if max_amount < 500:
+        return False, f"المبلغ المستخرج ({max_amount} دج) أقل من 500 دج."
+
+    # --- الشرط الثاني: التحقق من الوقت (< 73 ساعة) ---
+    # نبحث عن تاريخ بصيغة (YYYY-MM-DD) أو (DD/MM/YYYY)
+    date_pattern = r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})'
+    found_dates = re.findall(date_pattern, full_text)
+    
+    if found_dates:
+        # تحويل أول تاريخ موجود إلى صيغة datetime
+        try:
+            receipt_date = datetime.strptime(found_dates[0].replace('/', '-'), '%d-%m-%Y')
+        except:
+            receipt_date = datetime.strptime(found_dates[0], '%Y-%m-%d')
+            
+        current_time = datetime.now()
+        if (current_time - receipt_date) > timedelta(hours=73):
+            return False, "الوصل قديم (تجاوز 73 ساعة)."
+    else:
+        return False, "لم يتم العثور على تاريخ واضح في الوصل."
+
+    # --- الشرط الثالث: منع التكرار (رقم العملية) ---
+    # نبحث عن رقم العملية (غالباً يكون رقم طويل)
+    transaction_ids = re.findall(r'(\d{10,})', full_text) # يبحث عن رقم أطول من 10 خانات
+    if transaction_ids:
+        tid = transaction_ids[0]
+        if tid in used_receipt_ids:
+            return False, "هذا الوصل تم استخدامه مسبقاً!"
+        else:
+            used_receipt_ids.add(tid) # تسجيل الرقم لمنع استخدامه مرة أخرى
+    else:
+        return False, "فشل التحقق من الرقم التسلسلي للعملية."
+
+    return True, "تم قبول الوصل بنجاح! سيتم تفعيل حسابك."
+
+# --- تجربة الكود ---
+# status, message = process_receipt('receipt_image.jpg')
+# print(message)
